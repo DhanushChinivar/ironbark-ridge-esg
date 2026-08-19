@@ -32,6 +32,9 @@ export const supplierMatchEnum = pgEnum('supplier_match_method', ['abn', 'name']
 
 export const runStatusEnum = pgEnum('run_status', ['running', 'succeeded', 'failed']);
 
+// How confidently a raw location label was resolved to a site.
+export const matchConfidenceEnum = pgEnum('match_confidence', ['exact', 'inferred', 'unmapped']);
+
 export const ingestionRun = pgTable('ingestion_run', {
   id: serial('id').primaryKey(),
   startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
@@ -111,6 +114,51 @@ export const severityScale = pgTable('severity_scale', {
   note: text('note'),
 });
 
+// Fuel and incidents share an identical set of six location labels, so those
+// map exactly. The meters describe systems rather than places (CHPP Conveyors,
+// Ventilation & Dewatering), and five of the six resolve to nothing.
+export const site = pgTable(
+  'site',
+  {
+    id: serial('id').primaryKey(),
+    canonicalName: text('canonical_name').notNull(),
+    description: text('description'),
+  },
+  (t) => [uniqueIndex('site_canonical_name_uq').on(t.canonicalName)],
+);
+
+export const siteAlias = pgTable(
+  'site_alias',
+  {
+    id: serial('id').primaryKey(),
+    dataset: text('dataset').notNull(),
+    rawLabel: text('raw_label').notNull(),
+    siteId: integer('site_id').references(() => site.id),
+    matchConfidence: matchConfidenceEnum('match_confidence').notNull(),
+    // Why a label was left unmapped, so the omission is a documented decision.
+    note: text('note'),
+  },
+  (t) => [
+    uniqueIndex('site_alias_dataset_label_uq').on(t.dataset, t.rawLabel),
+    // Unmapped means no site, and a mapped alias must have one. Prevents an
+    // alias claiming a confidence it cannot support.
+    check(
+      'site_alias_unmapped_has_no_site',
+      sql`(${t.matchConfidence} = 'unmapped') = (${t.siteId} is null)`,
+    ),
+  ],
+);
+
+// Every month in the reporting window, so gaps render as "no data" rather than
+// disappearing from a GROUP BY. November 2025 has no fuel deliveries at all.
+export const reportPeriod = pgTable(
+  'report_period',
+  {
+    periodMonth: date('period_month').primaryKey(),
+  },
+  (t) => [check('report_period_is_month_start', sql`extract(day from ${t.periodMonth}) = 1`)],
+);
+
 export const supplier = pgTable('supplier', {
   id: serial('id').primaryKey(),
   sourceRowId: integer('source_row_id')
@@ -121,7 +169,8 @@ export const supplier = pgTable('supplier', {
   abnRaw: text('abn_raw'),
   // Digits only; null when blank or not 11 digits.
   abnDigits: text('abn_digits'),
-  abnValid: boolean('abn_valid'),
+  // Format only: 11 digits present. Nothing here runs the modulus-89 checksum.
+  abnFormatValid: boolean('abn_format_valid'),
   categoryRaw: text('category_raw'),
   categoryNormalised: text('category_normalised'),
   fySpendAud: numeric('fy_spend_aud', { precision: 14, scale: 2 }),
@@ -152,6 +201,10 @@ export const fuelDelivery = pgTable(
     quantityLitres: numeric('quantity_litres', { precision: 14, scale: 3 }).notNull(),
     costAud: numeric('cost_aud', { precision: 14, scale: 2 }),
     siteArea: text('site_area'),
+    siteId: integer('site_id').references(() => site.id),
+    // Which factor row was applied, so the calculation stays reproducible
+    // even if a factor is later corrected. Null when unresolved, plus a finding.
+    emissionFactorId: integer('emission_factor_id').references(() => emissionFactor.id),
     // Negative deliveries are credit notes reversing an over-delivery, not errors.
     isCreditNote: boolean('is_credit_note').notNull().default(false),
     // Set on the later copy of an exact duplicate; excluded from totals.
@@ -204,6 +257,8 @@ export const electricityReading = pgTable(
     // Canonical kWh, after any meter adjustment.
     consumptionKwh: numeric('consumption_kwh', { precision: 16, scale: 3 }).notNull(),
     appliedAdjustmentId: integer('applied_adjustment_id').references(() => meterAdjustment.id),
+    siteId: integer('site_id').references(() => site.id),
+    emissionFactorId: integer('emission_factor_id').references(() => emissionFactor.id),
   },
   (t) => [
     uniqueIndex('electricity_reading_meter_period_uq').on(t.meterId, t.periodMonth),
@@ -225,6 +280,7 @@ export const incident = pgTable(
     incidentDate: date('incident_date').notNull(),
     incidentDateRaw: text('incident_date_raw').notNull(),
     location: text('location'),
+    siteId: integer('site_id').references(() => site.id),
     typeCode: text('type_code'),
     severityRaw: text('severity_raw').notNull(),
     severityNormalised: smallint('severity_normalised'),
