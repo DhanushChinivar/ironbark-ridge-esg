@@ -8,11 +8,16 @@ try {
   /* empty */
 }
 
+// An unset variable in .env arrives as '', not undefined, so optional() alone
+// would reject a deliberately blank key.
+const blankAsUndefined = <T extends z.ZodTypeAny>(inner: T) =>
+  z.preprocess((v) => (v === '' ? undefined : v), inner);
+
 const schema = z.object({
   DATABASE_URL: z.string().url().startsWith('postgres'),
-  ANTHROPIC_API_KEY: z.string().min(1).optional(),
-  ANTHROPIC_MODEL: z.string().min(1).default('claude-sonnet-5'),
-  PORT: z.coerce.number().int().positive().default(3000),
+  ANTHROPIC_API_KEY: blankAsUndefined(z.string().min(1).optional()),
+  ANTHROPIC_MODEL: blankAsUndefined(z.string().min(1).default('claude-sonnet-5')),
+  PORT: blankAsUndefined(z.coerce.number().int().positive().default(3000)),
 });
 
 const parsed = schema.safeParse(process.env);
