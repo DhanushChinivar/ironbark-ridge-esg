@@ -11,6 +11,7 @@ import { emissionFactor, ingestionRun } from '../db/schema.js';
 import { landFile } from '../ingest/land.js';
 import { promoteElectricity } from '../promote/electricity.js';
 import { promoteFuel } from '../promote/fuel.js';
+import { promoteIncidents } from '../promote/incidents.js';
 import { promoteSuppliers } from '../promote/suppliers.js';
 import { loadReferenceData } from '../promote/reference.js';
 import type { PromotionSummary } from '../promote/findings.js';
@@ -46,6 +47,9 @@ try {
 
   const electricity = await landFile(db, run.id, 'electricity_meter_readings.csv');
   summaries.push(await promoteElectricity(db, run.id, electricity, ref));
+
+  const incidents = await landFile(db, run.id, 'incident_register.csv');
+  summaries.push(await promoteIncidents(db, run.id, incidents, ref));
 
   await db
     .update(ingestionRun)

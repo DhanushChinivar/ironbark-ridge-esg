@@ -2,7 +2,7 @@
 // than queried per row: the tables are tiny, and a missing lookup should fail
 // immediately with a readable message rather than produce a silently null link.
 import type { Tx } from '../db/client.js';
-import { emissionFactor, meterAdjustment, siteAlias } from '../db/schema.js';
+import { emissionFactor, meterAdjustment, severityScale, siteAlias } from '../db/schema.js';
 import type { MeterAdjustment } from '../rules/electricity.js';
 
 export interface ReferenceData {
@@ -13,6 +13,8 @@ export interface ReferenceData {
   unmappedLabels: Set<string>;
   /** Known meter corrections, handed to the rules layer as plain data. */
   meterAdjustments: MeterAdjustment[];
+  /** Globally valid severity mappings. "Low" is deliberately not among them. */
+  severityScale: Map<string, number>;
 }
 
 export async function loadReferenceData(tx: Tx): Promise<ReferenceData> {
@@ -45,11 +47,16 @@ export async function loadReferenceData(tx: Tx): Promise<ReferenceData> {
     })
     .from(meterAdjustment);
 
+  const severities = await tx
+    .select({ rawValue: severityScale.rawValue, normalised: severityScale.normalised })
+    .from(severityScale);
+
   return {
     factorIdByActivity: new Map(factors.map((f) => [f.activityKey, f.id])),
     siteIdByLabel,
     unmappedLabels,
     meterAdjustments: adjustments.map((a) => ({ ...a, multiplier: Number(a.multiplier) })),
+    severityScale: new Map(severities.map((s) => [s.rawValue, s.normalised])),
   };
 }
 
