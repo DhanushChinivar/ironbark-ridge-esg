@@ -2,7 +2,8 @@
 // than queried per row: the tables are tiny, and a missing lookup should fail
 // immediately with a readable message rather than produce a silently null link.
 import type { Tx } from '../db/client.js';
-import { emissionFactor, siteAlias } from '../db/schema.js';
+import { emissionFactor, meterAdjustment, siteAlias } from '../db/schema.js';
+import type { MeterAdjustment } from '../rules/electricity.js';
 
 export interface ReferenceData {
   factorIdByActivity: Map<string, number>;
@@ -10,6 +11,8 @@ export interface ReferenceData {
   siteIdByLabel: Map<string, number>;
   /** Labels declared unmapped, so an undeclared label stays distinguishable. */
   unmappedLabels: Set<string>;
+  /** Known meter corrections, handed to the rules layer as plain data. */
+  meterAdjustments: MeterAdjustment[];
 }
 
 export async function loadReferenceData(tx: Tx): Promise<ReferenceData> {
@@ -32,10 +35,21 @@ export async function loadReferenceData(tx: Tx): Promise<ReferenceData> {
     else siteIdByLabel.set(key, a.siteId);
   }
 
+  const adjustments = await tx
+    .select({
+      id: meterAdjustment.id,
+      meterId: meterAdjustment.meterId,
+      effectiveFrom: meterAdjustment.effectiveFrom,
+      effectiveTo: meterAdjustment.effectiveTo,
+      multiplier: meterAdjustment.multiplier,
+    })
+    .from(meterAdjustment);
+
   return {
     factorIdByActivity: new Map(factors.map((f) => [f.activityKey, f.id])),
     siteIdByLabel,
     unmappedLabels,
+    meterAdjustments: adjustments.map((a) => ({ ...a, multiplier: Number(a.multiplier) })),
   };
 }
 

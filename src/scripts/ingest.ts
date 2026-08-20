@@ -9,6 +9,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { emissionFactor, ingestionRun } from '../db/schema.js';
 import { landFile } from '../ingest/land.js';
+import { promoteElectricity } from '../promote/electricity.js';
 import { promoteFuel } from '../promote/fuel.js';
 import { promoteSuppliers } from '../promote/suppliers.js';
 import { loadReferenceData } from '../promote/reference.js';
@@ -42,6 +43,9 @@ try {
 
   const fuel = await landFile(db, run.id, 'fuel_deliveries.csv');
   summaries.push(await promoteFuel(db, run.id, fuel, ref));
+
+  const electricity = await landFile(db, run.id, 'electricity_meter_readings.csv');
+  summaries.push(await promoteElectricity(db, run.id, electricity, ref));
 
   await db
     .update(ingestionRun)
