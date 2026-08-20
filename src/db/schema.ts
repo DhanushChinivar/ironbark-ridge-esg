@@ -19,7 +19,10 @@ import {
 import { sql } from 'drizzle-orm';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 
-export const dispositionEnum = pgEnum('disposition', ['promoted', 'flagged', 'rejected']);
+// A row either made it into a typed table or it did not. Whether it carried a
+// concern is a separate fact, recorded per finding rather than per row — a row
+// whose kL was converted to litres is cleanly promoted and not flagged at all.
+export const dispositionEnum = pgEnum('disposition', ['promoted', 'rejected']);
 
 export const findingActionEnum = pgEnum('finding_action', ['fixed', 'flagged', 'rejected']);
 
@@ -55,18 +58,26 @@ export const sourceFile = pgTable(
     contentHash: text('content_hash').notNull(),
     rowsRead: integer('rows_read').notNull().default(0),
     rowsPromoted: integer('rows_promoted').notNull().default(0),
+    // Promoted rows carrying at least one flagged finding.
     rowsFlagged: integer('rows_flagged').notNull().default(0),
     rowsRejected: integer('rows_rejected').notNull().default(0),
   },
   (t) => [
     uniqueIndex('source_file_run_name_uq').on(t.ingestionRunId, t.fileName),
-    // Every row read is either promoted or rejected; flagged is a subset of
-    // promoted, so nothing can go missing without violating this.
+    // Nothing can go missing without violating this.
     check('source_file_rows_balance', sql`${t.rowsRead} = ${t.rowsPromoted} + ${t.rowsRejected}`),
+    // Flagged rows are promoted rows carrying at least one flagged finding, so
+    // the count is a subset rather than a fourth outcome.
+    check('source_file_flagged_subset', sql`${t.rowsFlagged} <= ${t.rowsPromoted}`),
   ],
 );
 
 // Verbatim CSV lines. Only `disposition` is ever updated.
+//
+// Each promoted table carries a unique index on source_row_id: one CSV line
+// promotes to exactly one domain row. Without it an interrupted-and-rerun
+// ingest could double-promote, inflating every total while the row counters
+// still balanced.
 export const sourceRow = pgTable(
   'source_row',
   {
@@ -159,7 +170,9 @@ export const reportPeriod = pgTable(
   (t) => [check('report_period_is_month_start', sql`extract(day from ${t.periodMonth}) = 1`)],
 );
 
-export const supplier = pgTable('supplier', {
+export const supplier = pgTable(
+  'supplier',
+  {
   id: serial('id').primaryKey(),
   sourceRowId: integer('source_row_id')
     .notNull()
@@ -179,7 +192,9 @@ export const supplier = pgTable('supplier', {
   // the evidence actually was.
   canonicalSupplierId: integer('canonical_supplier_id').references((): AnyPgColumn => supplier.id),
   matchMethod: supplierMatchEnum('match_method'),
-});
+  },
+  (t) => [uniqueIndex('supplier_source_row_uq').on(t.sourceRowId)],
+);
 
 export const fuelDelivery = pgTable(
   'fuel_delivery',
@@ -211,6 +226,7 @@ export const fuelDelivery = pgTable(
     duplicateOfId: integer('duplicate_of_id').references((): AnyPgColumn => fuelDelivery.id),
   },
   (t) => [
+    uniqueIndex('fuel_delivery_source_row_uq').on(t.sourceRowId),
     index('fuel_delivery_date_idx').on(t.deliveryDate),
     index('fuel_delivery_invoice_idx').on(t.invoiceNo),
     // `<> 0` rather than `> 0`: INV-41777 is a credit note, and rejecting it
@@ -261,6 +277,7 @@ export const electricityReading = pgTable(
     emissionFactorId: integer('emission_factor_id').references(() => emissionFactor.id),
   },
   (t) => [
+    uniqueIndex('electricity_reading_source_row_uq').on(t.sourceRowId),
     uniqueIndex('electricity_reading_meter_period_uq').on(t.meterId, t.periodMonth),
     index('electricity_reading_period_idx').on(t.periodMonth),
     // No credit-note equivalent for electricity, so unlike fuel this really is >= 0.
@@ -287,6 +304,7 @@ export const incident = pgTable(
     description: text('description').notNull(),
   },
   (t) => [
+    uniqueIndex('incident_source_row_uq').on(t.sourceRowId),
     index('incident_source_id_idx').on(t.sourceIncidentId),
     index('incident_date_idx').on(t.incidentDate),
     // An unmappable severity stays null and gets flagged, rather than being

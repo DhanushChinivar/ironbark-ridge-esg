@@ -1,0 +1,1857 @@
+{
+  "id": "1f36400c-62fa-46f8-8546-754d343ed25b",
+  "prevId": "10c58fa6-7b84-4918-b274-8fcd3ec47cd1",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.data_quality_finding": {
+      "name": "data_quality_finding",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ingestion_run_id": {
+          "name": "ingestion_run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rule_code": {
+          "name": "rule_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "severity": {
+          "name": "severity",
+          "type": "finding_severity",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "action": {
+          "name": "action",
+          "type": "finding_action",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dataset": {
+          "name": "dataset",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_row_id": {
+          "name": "source_row_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "field": {
+          "name": "field",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "original_value": {
+          "name": "original_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "corrected_value": {
+          "name": "corrected_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "message": {
+          "name": "message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rationale": {
+          "name": "rationale",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "detail": {
+          "name": "detail",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "dq_finding_run_idx": {
+          "name": "dq_finding_run_idx",
+          "columns": [
+            {
+              "expression": "ingestion_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "dq_finding_rule_idx": {
+          "name": "dq_finding_rule_idx",
+          "columns": [
+            {
+              "expression": "rule_code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "dq_finding_row_idx": {
+          "name": "dq_finding_row_idx",
+          "columns": [
+            {
+              "expression": "source_row_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "data_quality_finding_ingestion_run_id_ingestion_run_id_fk": {
+          "name": "data_quality_finding_ingestion_run_id_ingestion_run_id_fk",
+          "tableFrom": "data_quality_finding",
+          "tableTo": "ingestion_run",
+          "columnsFrom": [
+            "ingestion_run_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "data_quality_finding_source_row_id_source_row_id_fk": {
+          "name": "data_quality_finding_source_row_id_source_row_id_fk",
+          "tableFrom": "data_quality_finding",
+          "tableTo": "source_row",
+          "columnsFrom": [
+            "source_row_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.electricity_reading": {
+      "name": "electricity_reading",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "source_row_id": {
+          "name": "source_row_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "meter_id": {
+          "name": "meter_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "meter_description": {
+          "name": "meter_description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "period_month": {
+          "name": "period_month",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "consumption_as_recorded": {
+          "name": "consumption_as_recorded",
+          "type": "numeric(16, 3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unit_as_recorded": {
+          "name": "unit_as_recorded",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "consumption_kwh": {
+          "name": "consumption_kwh",
+          "type": "numeric(16, 3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "applied_adjustment_id": {
+          "name": "applied_adjustment_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "site_id": {
+          "name": "site_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "emission_factor_id": {
+          "name": "emission_factor_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "electricity_reading_source_row_uq": {
+          "name": "electricity_reading_source_row_uq",
+          "columns": [
+            {
+              "expression": "source_row_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "electricity_reading_meter_period_uq": {
+          "name": "electricity_reading_meter_period_uq",
+          "columns": [
+            {
+              "expression": "meter_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "period_month",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "electricity_reading_period_idx": {
+          "name": "electricity_reading_period_idx",
+          "columns": [
+            {
+              "expression": "period_month",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "electricity_reading_source_row_id_source_row_id_fk": {
+          "name": "electricity_reading_source_row_id_source_row_id_fk",
+          "tableFrom": "electricity_reading",
+          "tableTo": "source_row",
+          "columnsFrom": [
+            "source_row_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "electricity_reading_applied_adjustment_id_meter_adjustment_id_fk": {
+          "name": "electricity_reading_applied_adjustment_id_meter_adjustment_id_fk",
+          "tableFrom": "electricity_reading",
+          "tableTo": "meter_adjustment",
+          "columnsFrom": [
+            "applied_adjustment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "electricity_reading_site_id_site_id_fk": {
+          "name": "electricity_reading_site_id_site_id_fk",
+          "tableFrom": "electricity_reading",
+          "tableTo": "site",
+          "columnsFrom": [
+            "site_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "electricity_reading_emission_factor_id_emission_factor_id_fk": {
+          "name": "electricity_reading_emission_factor_id_emission_factor_id_fk",
+          "tableFrom": "electricity_reading",
+          "tableTo": "emission_factor",
+          "columnsFrom": [
+            "emission_factor_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "electricity_reading_nonnegative": {
+          "name": "electricity_reading_nonnegative",
+          "value": "\"electricity_reading\".\"consumption_kwh\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.emission_factor": {
+      "name": "emission_factor",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "activity_key": {
+          "name": "activity_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "activity": {
+          "name": "activity",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scope": {
+          "name": "scope",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unit": {
+          "name": "unit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kg_co2e_per_unit": {
+          "name": "kg_co2e_per_unit",
+          "type": "numeric(12, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "emission_factor_activity_key_uq": {
+          "name": "emission_factor_activity_key_uq",
+          "columns": [
+            {
+              "expression": "activity_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "emission_factor_scope_valid": {
+          "name": "emission_factor_scope_valid",
+          "value": "\"emission_factor\".\"scope\" in (1, 2, 3)"
+        },
+        "emission_factor_positive": {
+          "name": "emission_factor_positive",
+          "value": "\"emission_factor\".\"kg_co2e_per_unit\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.fuel_delivery": {
+      "name": "fuel_delivery",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "source_row_id": {
+          "name": "source_row_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "invoice_no": {
+          "name": "invoice_no",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "delivery_date": {
+          "name": "delivery_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "delivery_date_raw": {
+          "name": "delivery_date_raw",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_precision": {
+          "name": "date_precision",
+          "type": "date_precision",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fuel_type_raw": {
+          "name": "fuel_type_raw",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fuel_type_normalised": {
+          "name": "fuel_type_normalised",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantity_as_recorded": {
+          "name": "quantity_as_recorded",
+          "type": "numeric(14, 3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unit_as_recorded": {
+          "name": "unit_as_recorded",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantity_litres": {
+          "name": "quantity_litres",
+          "type": "numeric(14, 3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cost_aud": {
+          "name": "cost_aud",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "site_area": {
+          "name": "site_area",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "site_id": {
+          "name": "site_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "emission_factor_id": {
+          "name": "emission_factor_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_credit_note": {
+          "name": "is_credit_note",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "duplicate_of_id": {
+          "name": "duplicate_of_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "fuel_delivery_source_row_uq": {
+          "name": "fuel_delivery_source_row_uq",
+          "columns": [
+            {
+              "expression": "source_row_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "fuel_delivery_date_idx": {
+          "name": "fuel_delivery_date_idx",
+          "columns": [
+            {
+              "expression": "delivery_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "fuel_delivery_invoice_idx": {
+          "name": "fuel_delivery_invoice_idx",
+          "columns": [
+            {
+              "expression": "invoice_no",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "fuel_delivery_source_row_id_source_row_id_fk": {
+          "name": "fuel_delivery_source_row_id_source_row_id_fk",
+          "tableFrom": "fuel_delivery",
+          "tableTo": "source_row",
+          "columnsFrom": [
+            "source_row_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "fuel_delivery_site_id_site_id_fk": {
+          "name": "fuel_delivery_site_id_site_id_fk",
+          "tableFrom": "fuel_delivery",
+          "tableTo": "site",
+          "columnsFrom": [
+            "site_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "fuel_delivery_emission_factor_id_emission_factor_id_fk": {
+          "name": "fuel_delivery_emission_factor_id_emission_factor_id_fk",
+          "tableFrom": "fuel_delivery",
+          "tableTo": "emission_factor",
+          "columnsFrom": [
+            "emission_factor_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "fuel_delivery_duplicate_of_id_fuel_delivery_id_fk": {
+          "name": "fuel_delivery_duplicate_of_id_fuel_delivery_id_fk",
+          "tableFrom": "fuel_delivery",
+          "tableTo": "fuel_delivery",
+          "columnsFrom": [
+            "duplicate_of_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "fuel_delivery_quantity_nonzero": {
+          "name": "fuel_delivery_quantity_nonzero",
+          "value": "\"fuel_delivery\".\"quantity_litres\" <> 0"
+        },
+        "fuel_delivery_negative_is_credit": {
+          "name": "fuel_delivery_negative_is_credit",
+          "value": "\"fuel_delivery\".\"quantity_litres\" > 0 or \"fuel_delivery\".\"is_credit_note\" = true"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.incident": {
+      "name": "incident",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "source_row_id": {
+          "name": "source_row_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_incident_id": {
+          "name": "source_incident_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "incident_date": {
+          "name": "incident_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "incident_date_raw": {
+          "name": "incident_date_raw",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "location": {
+          "name": "location",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "site_id": {
+          "name": "site_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "type_code": {
+          "name": "type_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "severity_raw": {
+          "name": "severity_raw",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "severity_normalised": {
+          "name": "severity_normalised",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "incident_source_row_uq": {
+          "name": "incident_source_row_uq",
+          "columns": [
+            {
+              "expression": "source_row_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "incident_source_id_idx": {
+          "name": "incident_source_id_idx",
+          "columns": [
+            {
+              "expression": "source_incident_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "incident_date_idx": {
+          "name": "incident_date_idx",
+          "columns": [
+            {
+              "expression": "incident_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "incident_source_row_id_source_row_id_fk": {
+          "name": "incident_source_row_id_source_row_id_fk",
+          "tableFrom": "incident",
+          "tableTo": "source_row",
+          "columnsFrom": [
+            "source_row_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "incident_site_id_site_id_fk": {
+          "name": "incident_site_id_site_id_fk",
+          "tableFrom": "incident",
+          "tableTo": "site",
+          "columnsFrom": [
+            "site_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "incident_severity_range": {
+          "name": "incident_severity_range",
+          "value": "\"incident\".\"severity_normalised\" is null or \"incident\".\"severity_normalised\" between 1 and 5"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.incident_classification": {
+      "name": "incident_classification",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "incident_id": {
+          "name": "incident_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category": {
+          "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_psychosocial": {
+          "name": "is_psychosocial",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "confidence": {
+          "name": "confidence",
+          "type": "numeric(4, 3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reasoning": {
+          "name": "reasoning",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "evidence_quote": {
+          "name": "evidence_quote",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prompt_version": {
+          "name": "prompt_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "incident_classification_incident_idx": {
+          "name": "incident_classification_incident_idx",
+          "columns": [
+            {
+              "expression": "incident_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "incident_classification_incident_id_incident_id_fk": {
+          "name": "incident_classification_incident_id_incident_id_fk",
+          "tableFrom": "incident_classification",
+          "tableTo": "incident",
+          "columnsFrom": [
+            "incident_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "incident_classification_confidence_range": {
+          "name": "incident_classification_confidence_range",
+          "value": "\"incident_classification\".\"confidence\" is null or \"incident_classification\".\"confidence\" between 0 and 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.incident_label": {
+      "name": "incident_label",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "incident_id": {
+          "name": "incident_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expected_category": {
+          "name": "expected_category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_psychosocial": {
+          "name": "is_psychosocial",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "severity_concern": {
+          "name": "severity_concern",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rationale": {
+          "name": "rationale",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "labelled_by": {
+          "name": "labelled_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "labelled_at": {
+          "name": "labelled_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "incident_label_incident_uq": {
+          "name": "incident_label_incident_uq",
+          "columns": [
+            {
+              "expression": "incident_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "incident_label_incident_id_incident_id_fk": {
+          "name": "incident_label_incident_id_incident_id_fk",
+          "tableFrom": "incident_label",
+          "tableTo": "incident",
+          "columnsFrom": [
+            "incident_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ingestion_run": {
+      "name": "ingestion_run",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "finished_at": {
+          "name": "finished_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "run_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'running'"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.meter_adjustment": {
+      "name": "meter_adjustment",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "meter_id": {
+          "name": "meter_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "effective_from": {
+          "name": "effective_from",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "effective_to": {
+          "name": "effective_to",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "multiplier": {
+          "name": "multiplier",
+          "type": "numeric(12, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "evidence": {
+          "name": "evidence",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "meter_adjustment_multiplier_positive": {
+          "name": "meter_adjustment_multiplier_positive",
+          "value": "\"meter_adjustment\".\"multiplier\" > 0"
+        },
+        "meter_adjustment_period_ordered": {
+          "name": "meter_adjustment_period_ordered",
+          "value": "\"meter_adjustment\".\"effective_to\" is null or \"meter_adjustment\".\"effective_to\" > \"meter_adjustment\".\"effective_from\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.report_period": {
+      "name": "report_period",
+      "schema": "",
+      "columns": {
+        "period_month": {
+          "name": "period_month",
+          "type": "date",
+          "primaryKey": true,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "report_period_is_month_start": {
+          "name": "report_period_is_month_start",
+          "value": "extract(day from \"report_period\".\"period_month\") = 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.severity_flag": {
+      "name": "severity_flag",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "incident_id": {
+          "name": "incident_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_severity": {
+          "name": "recorded_severity",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "suggested_severity": {
+          "name": "suggested_severity",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_inconsistent": {
+          "name": "is_inconsistent",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "confidence": {
+          "name": "confidence",
+          "type": "numeric(4, 3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reasoning": {
+          "name": "reasoning",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "evidence_quote": {
+          "name": "evidence_quote",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prompt_version": {
+          "name": "prompt_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "severity_flag_incident_idx": {
+          "name": "severity_flag_incident_idx",
+          "columns": [
+            {
+              "expression": "incident_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "severity_flag_incident_id_incident_id_fk": {
+          "name": "severity_flag_incident_id_incident_id_fk",
+          "tableFrom": "severity_flag",
+          "tableTo": "incident",
+          "columnsFrom": [
+            "incident_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "severity_flag_confidence_range": {
+          "name": "severity_flag_confidence_range",
+          "value": "\"severity_flag\".\"confidence\" is null or \"severity_flag\".\"confidence\" between 0 and 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.severity_scale": {
+      "name": "severity_scale",
+      "schema": "",
+      "columns": {
+        "raw_value": {
+          "name": "raw_value",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "normalised": {
+          "name": "normalised",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.site": {
+      "name": "site",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "canonical_name": {
+          "name": "canonical_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "site_canonical_name_uq": {
+          "name": "site_canonical_name_uq",
+          "columns": [
+            {
+              "expression": "canonical_name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.site_alias": {
+      "name": "site_alias",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "dataset": {
+          "name": "dataset",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "raw_label": {
+          "name": "raw_label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "site_id": {
+          "name": "site_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "match_confidence": {
+          "name": "match_confidence",
+          "type": "match_confidence",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "site_alias_dataset_label_uq": {
+          "name": "site_alias_dataset_label_uq",
+          "columns": [
+            {
+              "expression": "dataset",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "raw_label",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "site_alias_site_id_site_id_fk": {
+          "name": "site_alias_site_id_site_id_fk",
+          "tableFrom": "site_alias",
+          "tableTo": "site",
+          "columnsFrom": [
+            "site_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "site_alias_unmapped_has_no_site": {
+          "name": "site_alias_unmapped_has_no_site",
+          "value": "(\"site_alias\".\"match_confidence\" = 'unmapped') = (\"site_alias\".\"site_id\" is null)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.source_file": {
+      "name": "source_file",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ingestion_run_id": {
+          "name": "ingestion_run_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_name": {
+          "name": "file_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "content_hash": {
+          "name": "content_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rows_read": {
+          "name": "rows_read",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "rows_promoted": {
+          "name": "rows_promoted",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "rows_flagged": {
+          "name": "rows_flagged",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "rows_rejected": {
+          "name": "rows_rejected",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {
+        "source_file_run_name_uq": {
+          "name": "source_file_run_name_uq",
+          "columns": [
+            {
+              "expression": "ingestion_run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "file_name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "source_file_ingestion_run_id_ingestion_run_id_fk": {
+          "name": "source_file_ingestion_run_id_ingestion_run_id_fk",
+          "tableFrom": "source_file",
+          "tableTo": "ingestion_run",
+          "columnsFrom": [
+            "ingestion_run_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "source_file_rows_balance": {
+          "name": "source_file_rows_balance",
+          "value": "\"source_file\".\"rows_read\" = \"source_file\".\"rows_promoted\" + \"source_file\".\"rows_rejected\""
+        },
+        "source_file_flagged_subset": {
+          "name": "source_file_flagged_subset",
+          "value": "\"source_file\".\"rows_flagged\" <= \"source_file\".\"rows_promoted\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.source_row": {
+      "name": "source_row",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "source_file_id": {
+          "name": "source_file_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "row_number": {
+          "name": "row_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "raw": {
+          "name": "raw",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "row_hash": {
+          "name": "row_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "disposition": {
+          "name": "disposition",
+          "type": "disposition",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'promoted'"
+        }
+      },
+      "indexes": {
+        "source_row_file_number_uq": {
+          "name": "source_row_file_number_uq",
+          "columns": [
+            {
+              "expression": "source_file_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "row_number",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "source_row_hash_idx": {
+          "name": "source_row_hash_idx",
+          "columns": [
+            {
+              "expression": "row_hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "source_row_source_file_id_source_file_id_fk": {
+          "name": "source_row_source_file_id_source_file_id_fk",
+          "tableFrom": "source_row",
+          "tableTo": "source_file",
+          "columnsFrom": [
+            "source_file_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.supplier": {
+      "name": "supplier",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "source_row_id": {
+          "name": "source_row_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name_raw": {
+          "name": "name_raw",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name_normalised": {
+          "name": "name_normalised",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "abn_raw": {
+          "name": "abn_raw",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "abn_digits": {
+          "name": "abn_digits",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "abn_format_valid": {
+          "name": "abn_format_valid",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "category_raw": {
+          "name": "category_raw",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "category_normalised": {
+          "name": "category_normalised",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fy_spend_aud": {
+          "name": "fy_spend_aud",
+          "type": "numeric(14, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "canonical_supplier_id": {
+          "name": "canonical_supplier_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "match_method": {
+          "name": "match_method",
+          "type": "supplier_match_method",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "supplier_source_row_uq": {
+          "name": "supplier_source_row_uq",
+          "columns": [
+            {
+              "expression": "source_row_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "supplier_source_row_id_source_row_id_fk": {
+          "name": "supplier_source_row_id_source_row_id_fk",
+          "tableFrom": "supplier",
+          "tableTo": "source_row",
+          "columnsFrom": [
+            "source_row_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "supplier_canonical_supplier_id_supplier_id_fk": {
+          "name": "supplier_canonical_supplier_id_supplier_id_fk",
+          "tableFrom": "supplier",
+          "tableTo": "supplier",
+          "columnsFrom": [
+            "canonical_supplier_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.date_precision": {
+      "name": "date_precision",
+      "schema": "public",
+      "values": [
+        "day",
+        "month"
+      ]
+    },
+    "public.disposition": {
+      "name": "disposition",
+      "schema": "public",
+      "values": [
+        "promoted",
+        "rejected"
+      ]
+    },
+    "public.finding_action": {
+      "name": "finding_action",
+      "schema": "public",
+      "values": [
+        "fixed",
+        "flagged",
+        "rejected"
+      ]
+    },
+    "public.finding_severity": {
+      "name": "finding_severity",
+      "schema": "public",
+      "values": [
+        "info",
+        "warning",
+        "critical"
+      ]
+    },
+    "public.match_confidence": {
+      "name": "match_confidence",
+      "schema": "public",
+      "values": [
+        "exact",
+        "inferred",
+        "unmapped"
+      ]
+    },
+    "public.run_status": {
+      "name": "run_status",
+      "schema": "public",
+      "values": [
+        "running",
+        "succeeded",
+        "failed"
+      ]
+    },
+    "public.supplier_match_method": {
+      "name": "supplier_match_method",
+      "schema": "public",
+      "values": [
+        "abn",
+        "name"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
