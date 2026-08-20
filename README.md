@@ -54,4 +54,5 @@ writing anything to the domain tables.
 
 ## Documentation
 
+- [`docs/schema.md`](docs/schema.md) — entity diagram and the constraints behind it
 - `WRITEUP.md` — data problems found, decisions taken, and the reasoning
