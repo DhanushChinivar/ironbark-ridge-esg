@@ -1,13 +1,13 @@
-// The classification prompt, versioned so every stored result says which one
-// produced it. Bump the version whenever the wording changes, or old and new
-// results become indistinguishable in the database.
+// The classification prompts. Every stored result records which one produced
+// it, so two versions can sit in the database at once and be compared.
 //
-// The prompt names the same psychosocial hazard categories the labelling rubric
-// uses. That is deliberate - a real compliance product would encode its
-// taxonomy - but it means the evaluation measures whether the model applies
-// stated criteria consistently, not whether it discovers them unaided. Running
-// it without the categories is the obvious next experiment.
-export const PROMPT_VERSION = 'classify-v1';
+// v1 states the taxonomy: the category definitions, the psychosocial criteria
+// from the Code of Practice, and the severity flagging rule. v2 withholds all
+// of it and asks for the same judgements unaided. v1 is what the product runs;
+// v2 exists because an evaluation of v1 alone cannot tell consistent
+// application of stated criteria apart from genuine discovery, and the
+// difference between the two scores is the only thing that can.
+
 
 export const CATEGORY_GUIDE = `
 - vehicle: light vehicle and haul fleet interactions, speeding, reversing
@@ -19,7 +19,7 @@ export const CATEGORY_GUIDE = `
 - psychosocial: see below
 - infrastructure: utilities and site services failure`.trim();
 
-export const SYSTEM_PROMPT = `
+const V1_SYSTEM = `
 You classify safety incidents for a Queensland open-cut coal mine. Your output
 goes into a compliance report, so a finding you cannot support from the text is
 worse than no finding at all.
@@ -64,6 +64,51 @@ incident description. Do not paraphrase, correct spelling, or join fragments
 with an ellipsis. A quote that is not an exact substring is discarded along with
 the assessment it supports.
 `.trim();
+
+
+// Same task, same output contract, criteria withheld. The tool schema still
+// constrains the category to eight labels - that cannot be ablated without
+// making the two runs incomparable - so this tests whether the model can apply
+// the criteria unaided, not whether it can invent the vocabulary.
+const V2_SYSTEM = `
+You classify safety incidents for a Queensland open-cut coal mine. Your output
+goes into a compliance report, so a finding you cannot support from the text is
+worse than no finding at all.
+
+For each incident, choose the category that best fits it, decide whether it
+describes a psychosocial hazard, and decide whether the recorded severity is
+inconsistent with what the description says happened.
+
+Use your own judgement of Queensland work health and safety practice. This
+prompt deliberately does not define the categories, the criteria for a
+psychosocial hazard, or the threshold for a severity concern.
+
+EVIDENCE
+
+Every judgement needs an evidenceQuote copied character for character from the
+incident description. Do not paraphrase, correct spelling, or join fragments
+with an ellipsis. A quote that is not an exact substring is discarded along with
+the assessment it supports.
+`.trim();
+
+export const PROMPTS = {
+  'classify-v1': { version: 'classify-v1', system: V1_SYSTEM },
+  'classify-v2': { version: 'classify-v2', system: V2_SYSTEM },
+} as const;
+
+export type PromptVersion = keyof typeof PROMPTS;
+
+// What the API serves. Changing this changes which stored pass the dashboard
+// reads, so it is not something an ablation run should touch.
+export const ACTIVE_PROMPT: PromptVersion = 'classify-v1';
+
+export function resolvePrompt(version: string): (typeof PROMPTS)[PromptVersion] {
+  const prompt = PROMPTS[version as PromptVersion];
+  if (!prompt) {
+    throw new Error(`Unknown prompt "${version}". Known: ${Object.keys(PROMPTS).join(', ')}`);
+  }
+  return prompt;
+}
 
 export function buildUserMessage(incident: {
   sourceIncidentId: string;

@@ -1,8 +1,13 @@
 // Model output joined back to the incidents it describes. Read only: the
 // classifications were written offline by npm run enrich.
+//
+// Pinned to one prompt version. The table holds every pass ever run, including
+// ablations, and without this filter a second version would double each finding
+// and fan the severity join out across both.
 import { sql } from 'drizzle-orm';
 import type { Tx } from '../db/client.js';
 import type { AiFindings } from '../contracts/index.js';
+import { ACTIVE_PROMPT } from '../ai/prompt.js';
 
 interface Row extends Record<string, unknown> {
   incident_id: number;
@@ -45,7 +50,9 @@ export async function aiFindings(tx: Tx): Promise<AiFindings> {
            c.prompt_version
     from incident_classification c
     join incident i on i.id = c.incident_id
-    left join severity_flag f on f.incident_id = c.incident_id
+    left join severity_flag f
+      on f.incident_id = c.incident_id and f.prompt_version = c.prompt_version
+    where c.prompt_version = ${ACTIVE_PROMPT}
     order by i.incident_date
   `);
 

@@ -119,4 +119,6 @@ its output is stored in Postgres — the site never calls the model.
 ## Documentation
 
 - [`docs/schema.md`](docs/schema.md) — entity diagram and the constraints behind it
+- [`docs/ai-evaluation.md`](docs/ai-evaluation.md) — how the classifier is scored, and the ablation that made the score mean something
+- [`docs/ai-labelling-rubric.md`](docs/ai-labelling-rubric.md) — the criteria the 42 hand labels were written against
 - `WRITEUP.md` — data problems found, decisions taken, and the reasoning

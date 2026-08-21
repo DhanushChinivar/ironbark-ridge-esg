@@ -39,7 +39,7 @@ export const incidentSummarySchema = z.object({
   bySeverity: z.array(
     z.object({ severity: z.number().int().nullable(), count: z.number().int() }),
   ),
-  byType: z.array(z.object({ typeCode: z.string(), count: z.number().int() })),
+  byType: z.array(z.object({ typeCode: z.string().nullable(), count: z.number().int() })),
   bySite: z.array(z.object({ site: z.string().nullable(), count: z.number().int() })),
   unresolvedSeverity: z.number().int(),
 });
@@ -50,6 +50,7 @@ export const incidentTrendSchema = z.object({
       month: z.string(),
       total: z.number().int(),
       bySeverity: z.record(z.string(), z.number().int()),
+      byType: z.record(z.string(), z.number().int()),
     }),
   ),
 });

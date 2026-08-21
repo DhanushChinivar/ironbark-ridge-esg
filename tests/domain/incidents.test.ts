@@ -57,6 +57,30 @@ describe('incidentTrend', () => {
     }
   });
 
+  it('keeps each month consistent with its own type breakdown', async () => {
+    for (const m of (await incidentTrend(db)).months) {
+      const fromTypes = Object.values(m.byType).reduce((a, n) => a + n, 0);
+      expect(fromTypes).toBe(m.total);
+    }
+  });
+
+  // The two breakdowns are separate queries, so this is what catches one of them
+  // silently drifting from the other.
+  it('agrees with the summary on the type mix over the whole window', async () => {
+    const [trend, summary] = await Promise.all([incidentTrend(db), incidentSummary(db)]);
+
+    const fromTrend = new Map<string, number>();
+    for (const m of trend.months) {
+      for (const [code, n] of Object.entries(m.byType)) {
+        fromTrend.set(code, (fromTrend.get(code) ?? 0) + n);
+      }
+    }
+
+    expect(Object.fromEntries(fromTrend)).toEqual(
+      Object.fromEntries(summary.byType.map((t) => [t.typeCode, t.count])),
+    );
+  });
+
   it('labels an unresolved severity rather than omitting it', async () => {
     const withUnresolved = (await incidentTrend(db)).months.filter(
       (m) => m.bySeverity.unresolved !== undefined,

@@ -4,7 +4,12 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
 import { env, requireAnthropicKey } from '../env.js';
-import { ASSESSMENT_TOOL, PROMPT_VERSION, SYSTEM_PROMPT, buildUserMessage } from './prompt.js';
+import {
+  ACTIVE_PROMPT,
+  ASSESSMENT_TOOL,
+  buildUserMessage,
+  resolvePrompt,
+} from './prompt.js';
 
 export interface IncidentForClassification {
   id: number;
@@ -57,11 +62,14 @@ export function isGrounded(quote: string, description: string): boolean {
 
 export async function classifyIncident(
   incident: IncidentForClassification,
+  promptVersion: string = ACTIVE_PROMPT,
 ): Promise<ClassificationResult> {
+  const prompt = resolvePrompt(promptVersion);
+
   const response = await client().messages.create({
     model: env.ANTHROPIC_MODEL,
     max_tokens: 1024,
-    system: SYSTEM_PROMPT,
+    system: prompt.system,
     messages: [{ role: 'user', content: buildUserMessage(incident) }],
     tools: [ASSESSMENT_TOOL],
     tool_choice: { type: 'tool', name: ASSESSMENT_TOOL.name },
@@ -93,7 +101,7 @@ export async function classifyIncident(
     sourceIncidentId: incident.sourceIncidentId,
     assessment,
     model: env.ANTHROPIC_MODEL,
-    promptVersion: PROMPT_VERSION,
+    promptVersion: prompt.version,
     rejections,
   };
 }

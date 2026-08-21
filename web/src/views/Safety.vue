@@ -22,9 +22,17 @@ const shown = computed(() => {
   return f;
 });
 
-const maxMonth = computed(() =>
-  Math.max(...(trends.data.value?.months.map((m) => m.total) ?? [1]), 1),
-);
+const months = computed(() => trends.data.value?.months ?? []);
+const maxMonth = computed(() => Math.max(...months.value.map((m) => m.total), 1));
+
+// The month bars carry three numbers each. Putting the breakdowns in a readout
+// keeps the chart itself readable instead of stacking seven type colours.
+const hovered = ref<number | null>(null);
+const active = computed(() => (hovered.value === null ? null : months.value[hovered.value] ?? null));
+const mix = (counts: Record<string, number>) =>
+  Object.entries(counts)
+    .map(([key, n]) => `${key} ×${n}`)
+    .join('  ') || 'no incidents';
 
 const severityLabel = (n: number | null) => (n === null ? 'unresolved' : `severity ${n}`);
 </script>
@@ -64,12 +72,31 @@ const severityLabel = (n: number | null) => (n === null ? 'unresolved' : `severi
 
     <Panel title="Incidents by month" :loading="loading" :error="error">
       <div class="trend">
-        <div v-for="m in trends.data.value?.months ?? []" :key="m.month" class="col">
-          <div class="bar" :style="{ height: `${(m.total / maxMonth) * 100}%` }">
+        <div
+          v-for="(m, i) in months"
+          :key="m.month"
+          class="col"
+          @mouseenter="hovered = i"
+          @mouseleave="hovered = null"
+        >
+          <div
+            class="bar"
+            :style="{ height: `${(m.total / maxMonth) * 100}%` }"
+            :class="{ dim: hovered !== null && hovered !== i }"
+          >
             <span v-if="m.total" class="n mono">{{ m.total }}</span>
           </div>
           <div class="lbl mono">{{ m.month.slice(5) }}</div>
         </div>
+      </div>
+
+      <div class="readout mono" :class="{ dim: !active }">
+        <template v-if="active">
+          <b>{{ active.month }}</b>
+          <span class="k">Severity</span>{{ mix(active.bySeverity) }}
+          <span class="k">Type</span>{{ mix(active.byType) }}
+        </template>
+        <template v-else>Hover a month for its severity and type mix</template>
       </div>
     </Panel>
 
@@ -134,7 +161,27 @@ h1 { margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
   border-radius: 1px;
 }
 .n { position: absolute; top: -16px; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--ink-faint); }
+.bar.dim { opacity: 0.35; }
 .lbl { font-size: 9.5px; color: var(--ink-faint); padding-top: 6px; }
+
+.readout {
+  font-size: 12px;
+  color: var(--ink-soft);
+  border-top: 1px solid var(--rule);
+  margin-top: 14px;
+  padding-top: 10px;
+  min-height: 22px;
+}
+.readout.dim { color: var(--ink-faint); }
+.readout b { color: var(--ink); }
+.readout .k {
+  display: inline-block;
+  margin: 0 7px 0 16px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
 
 .filters { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; }
 

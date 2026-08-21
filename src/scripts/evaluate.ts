@@ -1,8 +1,15 @@
 // Scores the classifier against the hand-written labels and prints every
 // disagreement, so a reader can audit the labels rather than trust them.
-import { eq } from 'drizzle-orm';
+//
+//   npm run evaluate                          scores the prompt the dashboard reads
+//   npm run evaluate -- --prompt=classify-v2  scores an ablation stored alongside it
+import { and, eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { incident, incidentClassification, incidentLabel, severityFlag } from '../db/schema.js';
+import { ACTIVE_PROMPT, resolvePrompt } from '../ai/prompt.js';
+
+const requested = process.argv.find((a) => a.startsWith('--prompt='))?.split('=')[1];
+const prompt = resolvePrompt(requested ?? ACTIVE_PROMPT);
 
 const rows = await db
   .select({
@@ -28,11 +35,27 @@ const rows = await db
   })
   .from(incidentLabel)
   .innerJoin(incident, eq(incident.id, incidentLabel.incidentId))
-  .leftJoin(incidentClassification, eq(incidentClassification.incidentId, incidentLabel.incidentId))
-  .leftJoin(severityFlag, eq(severityFlag.incidentId, incidentLabel.incidentId))
+  .leftJoin(
+    incidentClassification,
+    and(
+      eq(incidentClassification.incidentId, incidentLabel.incidentId),
+      eq(incidentClassification.promptVersion, prompt.version),
+    ),
+  )
+  .leftJoin(
+    severityFlag,
+    and(
+      eq(severityFlag.incidentId, incidentLabel.incidentId),
+      eq(severityFlag.promptVersion, prompt.version),
+    ),
+  )
   .orderBy(incident.incidentDate);
 
 if (!rows.length) throw new Error('No labels found. Run "npm run label" first.');
+
+if (rows.every((r) => r.predictedCategory === null)) {
+  throw new Error(`No results stored for ${prompt.version}. Run "npm run enrich -- --prompt=${prompt.version}" first.`);
+}
 
 const pct = (n: number, d: number) => (d === 0 ? 'n/a' : `${((n / d) * 100).toFixed(0)}%`);
 
@@ -52,7 +75,7 @@ const categoryHits = rows.filter((r) => r.predictedCategory === r.expectedCatego
 const psycho = binary(rows.map((r) => r.predictedPsychosocial ?? false), rows.map((r) => r.expectedPsychosocial));
 const sev = binary(rows.map((r) => r.predictedSeverityConcern ?? false), rows.map((r) => r.expectedSeverityConcern));
 
-console.log(`\nEvaluation: ${rows[0]?.model} / ${rows[0]?.promptVersion}, n=${rows.length}\n`);
+console.log(`\nEvaluation: ${rows[0]?.model} / ${prompt.version}, n=${rows.length}\n`);
 console.log(`  category accuracy        ${categoryHits}/${rows.length}  ${pct(categoryHits, rows.length)}`);
 console.log(`  psychosocial recall      ${psycho.tp}/${psycho.tp + psycho.fn}  ${pct(psycho.tp, psycho.tp + psycho.fn)}`);
 console.log(`  psychosocial precision   ${psycho.tp}/${psycho.tp + psycho.fp}  ${pct(psycho.tp, psycho.tp + psycho.fp)}`);
@@ -86,11 +109,30 @@ for (const d of disagreements) {
 }
 
 // Whether the model's own confidence tracks correctness. If it does not, the
-// number is decoration and should not be used to route anything.
-const correct = rows.filter((r) => r.predictedCategory === r.expectedCategory);
-const wrong = rows.filter((r) => r.predictedCategory !== r.expectedCategory);
-const mean = (xs: typeof rows) =>
-  xs.length ? xs.reduce((a, r) => a + Number(r.categoryConfidence ?? 0), 0) / xs.length : 0;
+// number is decoration and should not be used to route anything. Reported per
+// task, because the two are not interchangeable: a run can be perfect on
+// category and wrong on severity, and one mean would hide it.
+const mean = (xs: (string | number | null)[]) =>
+  xs.length ? xs.reduce((a: number, x) => a + Number(x ?? 0), 0) / xs.length : 0;
 
-console.log(`\n  mean confidence when right  ${mean(correct).toFixed(3)}  (n=${correct.length})`);
-console.log(`  mean confidence when wrong  ${wrong.length ? mean(wrong).toFixed(3) : 'n/a'}  (n=${wrong.length})`);
+function calibration(label: string, right: typeof rows, wrong: typeof rows, pick: (r: (typeof rows)[number]) => string | number | null) {
+  console.log(`\n  ${label} confidence when right  ${mean(right.map(pick)).toFixed(3)}  (n=${right.length})`);
+  console.log(`  ${label} confidence when wrong  ${wrong.length ? mean(wrong.map(pick)).toFixed(3) : 'n/a'}  (n=${wrong.length})`);
+}
+
+calibration(
+  'category',
+  rows.filter((r) => r.predictedCategory === r.expectedCategory),
+  rows.filter((r) => r.predictedCategory !== r.expectedCategory),
+  (r) => r.categoryConfidence,
+);
+
+// Only over the flags actually raised. Scoring the silent majority would drown
+// the handful of judgements this number is meant to help triage.
+const raised = rows.filter((r) => r.predictedSeverityConcern);
+calibration(
+  'severity flag',
+  raised.filter((r) => r.expectedSeverityConcern),
+  raised.filter((r) => !r.expectedSeverityConcern),
+  (r) => r.severityConfidence,
+);

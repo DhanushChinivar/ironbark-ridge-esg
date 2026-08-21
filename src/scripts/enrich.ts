@@ -1,10 +1,17 @@
 // Runs classification over every incident and persists the results. Offline:
 // the API never calls a model at request time.
+//
+//   npm run enrich                          the prompt the dashboard reads
+//   npm run enrich -- --prompt=classify-v2  an ablation, stored alongside it
+import { eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { incident, incidentClassification, severityFlag } from '../db/schema.js';
 import { classifyIncident, type IncidentForClassification } from '../ai/classify.js';
-import { PROMPT_VERSION } from '../ai/prompt.js';
+import { ACTIVE_PROMPT, resolvePrompt } from '../ai/prompt.js';
 import { env } from '../env.js';
+
+const requested = process.argv.find((a) => a.startsWith('--prompt='))?.split('=')[1];
+const prompt = resolvePrompt(requested ?? ACTIVE_PROMPT);
 
 const rows: IncidentForClassification[] = await db
   .select({
@@ -20,9 +27,11 @@ const rows: IncidentForClassification[] = await db
 
 if (!rows.length) throw new Error('No incidents found. Run "npm run ingest" first.');
 
-// A re-run replaces the previous pass rather than adding to it.
-await db.delete(incidentClassification);
-await db.delete(severityFlag);
+// A re-run replaces the previous pass of this prompt, and leaves every other
+// version alone - that is what makes two passes comparable rather than
+// sequential.
+await db.delete(incidentClassification).where(eq(incidentClassification.promptVersion, prompt.version));
+await db.delete(severityFlag).where(eq(severityFlag.promptVersion, prompt.version));
 
 let grounded = 0;
 let discarded = 0;
@@ -30,7 +39,7 @@ let psychosocial = 0;
 let flagged = 0;
 
 for (const row of rows) {
-  const result = await classifyIncident(row);
+  const result = await classifyIncident(row, prompt.version);
   const a = result.assessment;
 
   if (result.rejections.includes('category')) {
@@ -45,7 +54,7 @@ for (const row of rows) {
       reasoning: a.categoryReasoning,
       evidenceQuote: a.categoryEvidenceQuote,
       model: result.model,
-      promptVersion: PROMPT_VERSION,
+      promptVersion: prompt.version,
     });
     grounded += 1;
     if (a.isPsychosocial) psychosocial += 1;
@@ -64,13 +73,13 @@ for (const row of rows) {
       reasoning: a.severityReasoning,
       evidenceQuote: a.severityEvidenceQuote,
       model: result.model,
-      promptVersion: PROMPT_VERSION,
+      promptVersion: prompt.version,
     });
     if (a.severityInconsistent) flagged += 1;
   }
 }
 
-console.log(`\nClassified ${rows.length} incidents with ${env.ANTHROPIC_MODEL} (${PROMPT_VERSION})`);
+console.log(`\nClassified ${rows.length} incidents with ${env.ANTHROPIC_MODEL} (${prompt.version})`);
 console.log(`  classifications stored   ${grounded}`);
 console.log(`  psychosocial found       ${psychosocial}`);
 console.log(`  severity flags raised    ${flagged}`);
