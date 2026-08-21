@@ -162,3 +162,22 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--ramp-3); outlin
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* Printing is the PDF path, so the app furniture has to get out of the way:
+   no field, no glass, no navigation, and the page box supplies the margins. */
+@media print {
+  body { background: #fff; color: #111; }
+  body::before { display: none; }
+  aside { display: none !important; }
+  main {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .panel { box-shadow: none; border-color: #ddd; -webkit-backdrop-filter: none; backdrop-filter: none; background: #fff; }
+}
+
+@page {
+  size: A4;
+  margin: 18mm 16mm;
+}

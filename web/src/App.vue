@@ -15,6 +15,11 @@ const nav = [
   { to: '/data-trust', label: 'Data Trust', icon: 'layers' },
 ] as const;
 
+// Kept apart from the four above. Those are places to look at the data; this is
+// something the data is turned into, and grouping it with them would suggest a
+// fifth screen rather than an output.
+const output = { to: '/report', label: 'Report' } as const;
+
 const quality = useAsync(() => api.dataQuality());
 
 const rows = computed(() =>
@@ -66,6 +71,20 @@ const rejected = computed(() =>
             </template>
           </svg>
           <span>{{ item.label }}</span>
+        </RouterLink>
+
+        <RouterLink
+          :to="output.to"
+          class="sans out"
+          :class="{ on: route.path === output.to }"
+        >
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" />
+            <path d="M14 3v5h5" />
+            <path d="M9 13h6M9 17h4" />
+          </svg>
+          <span>{{ output.label }}</span>
+          <span class="tag mono">PDF</span>
         </RouterLink>
       </nav>
 
@@ -152,6 +171,27 @@ nav a.on {
   stroke-linejoin: round;
 }
 nav a.on .icon { stroke-width: 1.9; }
+
+.out { margin-top: 9px; padding-top: 0; position: relative; }
+.out::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 12px;
+  right: 12px;
+  height: 1px;
+  background: var(--rule);
+}
+.tag {
+  margin-left: auto;
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--track);
+  color: var(--ramp-2);
+}
+.out.on .tag { background: rgba(255, 255, 255, 0.25); color: #fff; }
 
 .field {
   margin-top: auto;

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { RouterLink } from 'vue-router';
 import type { Evidence } from '@contracts';
 import { api } from '../api';
 import { useAsync } from '../composables/useAsync';
@@ -155,6 +156,26 @@ function firstRowFor(ruleCode: string): number | null {
       </ul>
     </Panel>
 
+    <Panel title="Report" note="pdf">
+      <div class="export">
+        <div>
+          <p class="lede-sm">
+            Everything on this page, plus the emissions tables and the safety findings, typeset as
+            a dated report. It is built from the same endpoints the dashboard reads, so the two
+            cannot disagree.
+          </p>
+          <ul class="contents">
+            <li>Summary and the value of each correction</li>
+            <li>Emissions by month, by scope, with the record count behind every row</li>
+            <li>Psychosocial and severity findings, each with its quoted source</li>
+            <li>Per-file row counters, content hashes, and the full rule catalogue</li>
+            <li>Method and provenance</li>
+          </ul>
+        </div>
+        <RouterLink to="/report" class="cta sans">Open report →</RouterLink>
+      </div>
+    </Panel>
+
     <Panel v-if="openRow !== null" title="Evidence" :note="`source row ${openRow}`">
       <p v-if="evidenceError" class="err">{{ evidenceError }}</p>
       <p v-else-if="!evidence" class="loading">Loading…</p>
@@ -191,6 +212,22 @@ function firstRowFor(ruleCode: string): number | null {
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 30px; }
+.export { display: flex; align-items: center; justify-content: space-between; gap: 30px; flex-wrap: wrap; }
+.lede-sm { margin: 0 0 10px; color: var(--ink-soft); max-width: 62ch; font-size: 14.5px; }
+.contents { margin: 0; padding-left: 18px; color: var(--ink-faint); font-size: 13px; }
+.contents li { padding: 1px 0; }
+.cta {
+  flex: 0 0 auto;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--ramp-4), var(--ramp-3));
+  box-shadow: 0 3px 10px -2px rgba(37, 106, 191, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
 .tally { list-style: none; margin: 0; padding: 0; }
 .tally li {
   display: flex;
