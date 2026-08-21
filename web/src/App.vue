@@ -10,8 +10,8 @@ const route = useRoute();
 // what identifies it; the glyph is what you find again without reading.
 const nav = [
   { to: '/', label: 'Overview', icon: 'grid' },
-  { to: '/emissions', label: 'Emissions', icon: 'bars' },
-  { to: '/safety', label: 'Safety', icon: 'shield' },
+  { to: '/emissions', label: 'Emissions', icon: 'cloud' },
+  { to: '/safety', label: 'Safety', icon: 'hat' },
   { to: '/data-trust', label: 'Data Trust', icon: 'layers' },
 ] as const;
 
@@ -34,9 +34,10 @@ const rejected = computed(() =>
   <div class="shell">
     <aside>
       <div class="brand">
-        <div class="mark" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><path d="M3 20 9.5 8l4 7 2.5-4L21 20Z" /></svg>
-        </div>
+        <!-- The brand mark itself, not a redrawing of it. The ridge, leaf and
+             shield do not survive being simplified to three paths, and this is
+             the same file the favicon uses. -->
+        <img class="mark" src="/icon-512.png" alt="" width="34" height="34" />
         <div>
           <div class="eyebrow">Ironbark Ridge</div>
           <div class="site sans">ESG &amp; Safety</div>
@@ -58,12 +59,19 @@ const rejected = computed(() =>
               <rect x="3" y="13.5" width="7.5" height="7.5" rx="2" />
               <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2" />
             </template>
-            <template v-else-if="item.icon === 'bars'">
-              <path d="M5 20V12M12 20V4M19 20v-5" />
+            <!-- The reference art letters this CO2; at 18px the letterforms
+                 close into blobs. Cloud plus horizontal air strokes carries the
+                 same meaning - vertical wisps just read as rain. -->
+            <template v-else-if="item.icon === 'cloud'">
+              <path d="M7.4 15.6a3.8 3.8 0 0 1-.4-7.6 5.1 5.1 0 0 1 9.7-.6 3.6 3.6 0 0 1 .4 7.2Z" />
+              <path d="M5.4 18.8h9.2M8.6 21.4h7" />
             </template>
-            <template v-else-if="item.icon === 'shield'">
-              <path d="M12 3 5 6v6c0 4.2 3 7.5 7 9 4-1.5 7-4.8 7-9V6Z" />
-              <path d="m9 12 2.2 2.2L15.5 10" />
+            <!-- Crown, brim, and the two ribs that stop a dome reading as a
+                 lamp. Anything finer than this is lost by 18px. -->
+            <template v-else-if="item.icon === 'hat'">
+              <path d="M6 14.8V12a6 6 0 0 1 12 0v2.8" />
+              <path d="M12 14.6V6.1" />
+              <path d="M2.8 14.8h18.4a1 1 0 0 1 1 1v1.4a1 1 0 0 1-1 1H2.8a1 1 0 0 1-1-1v-1.4a1 1 0 0 1 1-1Z" />
             </template>
             <template v-else>
               <path d="M12 3 3 7.5 12 12l9-4.5Z" />
@@ -128,16 +136,15 @@ aside {
 }
 
 .brand { display: flex; align-items: center; gap: 11px; padding: 4px 6px; }
+/* The artwork carries its own gradient and rounded corners; the radius here
+   only clips the sheet background left in the crop. */
 .mark {
   flex: 0 0 34px;
+  width: 34px;
   height: 34px;
-  display: grid;
-  place-items: center;
-  border-radius: 11px;
-  background: linear-gradient(180deg, var(--ramp-4), var(--ramp-2));
-  box-shadow: 0 3px 10px -2px rgba(37, 106, 191, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  border-radius: 10px;
+  box-shadow: 0 3px 10px -2px rgba(37, 106, 191, 0.45);
 }
-.mark svg { width: 19px; height: 19px; fill: #fff; }
 .site { font-weight: 800; font-size: 15.5px; letter-spacing: -0.02em; line-height: 1.2; }
 
 nav { display: flex; flex-direction: column; gap: 3px; }
