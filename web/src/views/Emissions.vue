@@ -4,7 +4,7 @@ import type { Basis, MonthlyEmissions } from '@contracts';
 import { api } from '../api';
 import Panel from '../components/Panel.vue';
 import Stat from '../components/Stat.vue';
-import MonthlyChart from '../components/MonthlyChart.vue';
+import MonthlyChart, { type Focus } from '../components/MonthlyChart.vue';
 
 const basis = ref<Basis>('corrected');
 const data = ref<MonthlyEmissions | null>(null);
@@ -23,6 +23,17 @@ async function load() {
   }
 }
 watch(basis, load, { immediate: true });
+
+// Focus, not filter. Picking a scope emphasises it and moves both onto a common
+// baseline; it never takes the other one off the chart, because the thing worth
+// seeing here is the trade between them.
+const focus = ref<Focus>('both');
+const focusTabs: { value: Focus; label: string; note: string }[] = [
+  { value: 'both', label: 'Both', note: 'stacked — total and mix' },
+  { value: 'scope1', label: 'Scope 1', note: 'fuel, against Scope 2 for scale' },
+  { value: 'scope2', label: 'Scope 2', note: 'electricity, against Scope 1 for scale' },
+];
+const focusNote = computed(() => focusTabs.find((f) => f.value === focus.value)?.note ?? '');
 
 const t = (n: number) => n.toLocaleString('en-AU', { maximumFractionDigits: 0 });
 const correction = computed(() => data.value?.correction);
@@ -62,8 +73,21 @@ const correction = computed(() => data.value?.correction);
       </div>
     </Panel>
 
-    <Panel title="Monthly, by scope" :loading="loading" :error="error">
-      <MonthlyChart v-if="data" :months="data.months" />
+    <Panel title="Monthly, by scope" :note="focusNote" :loading="loading" :error="error">
+      <div class="tabs">
+        <button
+          v-for="tab in focusTabs"
+          :key="tab.value"
+          :aria-pressed="focus === tab.value"
+          @click="focus = tab.value"
+        >
+          {{ tab.label }}
+        </button>
+      </div>
+      <MonthlyChart v-if="data" :months="data.months" :focus="focus" />
+      <p class="axis-note">
+        The scale is the same on all three, so the bars stay comparable between them.
+      </p>
     </Panel>
 
     <Panel title="What the correction is worth" :loading="loading" :error="error">
@@ -110,6 +134,9 @@ h1 { margin: 0 0 8px; font-size: 33px; font-weight: 800; }
 .toggle div { display: flex; gap: 6px; }
 
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 24px; }
+
+.tabs { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; }
+.axis-note { margin: 10px 0 0; font-size: 11.5px; color: var(--ink-faint); }
 
 .correction { display: flex; flex-direction: column; gap: 14px; }
 .correction p { margin: 0; max-width: 72ch; color: var(--ink-soft); }

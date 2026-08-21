@@ -2,7 +2,12 @@
 import { computed, ref } from 'vue';
 import type { MonthlyEmissions } from '@contracts';
 
-const props = defineProps<{ months: MonthlyEmissions['months'] }>();
+export type Focus = 'both' | 'scope1' | 'scope2';
+
+const props = withDefaults(
+  defineProps<{ months: MonthlyEmissions['months']; focus?: Focus }>(),
+  { focus: 'both' },
+);
 
 const W = 900;
 const H = 260;
@@ -10,11 +15,21 @@ const PAD = { top: 12, right: 8, bottom: 30, left: 46 };
 
 const hovered = ref<number | null>(null);
 
+// Always the stacked total, never the focused series. Rescaling per tab would
+// let Scope 1 and Scope 2 fill the same height on their own tabs, and the
+// March spike - the largest Scope 1 month in the period - would look ordinary.
 const max = computed(() => Math.max(...props.months.map((m) => m.totalTco2e), 1));
 const plotW = W - PAD.left - PAD.right;
 const plotH = H - PAD.top - PAD.bottom;
 const band = computed(() => plotW / props.months.length);
-const barW = computed(() => Math.min(band.value * 0.52, 26));
+const stacked = computed(() => props.focus === 'both');
+
+// Stacked, one bar carries both scopes. Focused, they sit side by side so both
+// are measured from zero - which is the only way to read the top series' own
+// shape rather than the shape of whatever is under it.
+const barW = computed(() =>
+  stacked.value ? Math.min(band.value * 0.52, 26) : Math.min(band.value * 0.26, 13),
+);
 
 // Rounded at the free end, square where it meets the baseline or the segment
 // below. A plain rx would round all four corners and lift the bar off its axis.
@@ -33,7 +48,19 @@ function capped(x: number, y: number, w: number, h: number, r = 4): string {
 }
 
 const y = (v: number) => PAD.top + plotH - (v / max.value) * plotH;
+const height = (v: number) => plotH - (y(v) - PAD.top);
+
 const x = (i: number) => PAD.left + i * band.value + (band.value - barW.value) / 2;
+// Side by side, the pair straddles the slot the single bar would have occupied.
+const xPair = (i: number, second = false) =>
+  PAD.left + i * band.value + (band.value - barW.value * 2 - 3) / 2 + (second ? barW.value + 3 : 0);
+
+// The unfocused scope is not removed, only pushed back. Dropping it would take
+// the March 2026 trade-off off the chart entirely, and that is the finding.
+const dim = (scope: 'scope1' | 'scope2', index: number) => {
+  const faded = props.focus !== 'both' && props.focus !== scope ? 0.28 : 1;
+  return hovered.value === null || hovered.value === index ? faded : faded * 0.35;
+};
 
 // Round hundreds for gridlines rather than a fixed count, so the labels are
 // numbers a person would actually say.
@@ -67,24 +94,50 @@ const fmt = (n: number) => n.toLocaleString('en-AU', { maximumFractionDigits: 0 
           @mouseenter="hovered = i"
           @mouseleave="hovered = null"
         />
-        <path
-          class="s2"
-          :d="capped(x(i), y(m.scope2Tco2e), barW, plotH - (y(m.scope2Tco2e) - PAD.top))"
-          :opacity="hovered === null || hovered === i ? 1 : 0.3"
-        />
-        <!-- 2px short of the segment below it, so the two scopes stay two marks
-             rather than merging into one column. -->
-        <path
-          class="s1"
-          :d="capped(x(i), y(m.totalTco2e), barW, y(m.scope2Tco2e) - y(m.totalTco2e) - 2)"
-          :opacity="hovered === null || hovered === i ? 1 : 0.3"
-        />
+        <template v-if="stacked">
+          <path
+            class="s2"
+            :d="capped(x(i), y(m.scope2Tco2e), barW, height(m.scope2Tco2e))"
+            :opacity="dim('scope2', i)"
+          />
+          <!-- 2px short of the segment below it, so the two scopes stay two marks
+               rather than merging into one column. -->
+          <path
+            class="s1"
+            :d="capped(x(i), y(m.totalTco2e), barW, y(m.scope2Tco2e) - y(m.totalTco2e) - 2)"
+            :opacity="dim('scope1', i)"
+          />
+        </template>
+        <template v-else>
+          <path
+            class="s1"
+            :d="capped(xPair(i), y(m.scope1Tco2e), barW, height(m.scope1Tco2e))"
+            :opacity="dim('scope1', i)"
+          />
+          <path
+            class="s2"
+            :d="capped(xPair(i, true), y(m.scope2Tco2e), barW, height(m.scope2Tco2e))"
+            :opacity="dim('scope2', i)"
+          />
+        </template>
         <!-- A month with no fuel data is marked, not left to read as zero. -->
-        <text v-if="!m.hasFuelData" class="gap" :x="x(i) + barW / 2" :y="y(m.scope2Tco2e) - 7">
+        <text
+          v-if="!m.hasFuelData"
+          class="gap"
+          :x="PAD.left + i * band + band / 2"
+          :y="y(stacked ? m.scope2Tco2e : 0) - 7"
+        >
           no data
         </text>
-        <text class="month" :x="x(i) + barW / 2" :y="H - 10">{{ m.month.slice(5) }}</text>
-        <text v-if="m.month.endsWith('-01')" class="year" :x="x(i) + barW / 2" :y="H - 21">
+        <text class="month" :x="PAD.left + i * band + band / 2" :y="H - 10">
+          {{ m.month.slice(5) }}
+        </text>
+        <text
+          v-if="m.month.endsWith('-01')"
+          class="year"
+          :x="PAD.left + i * band + band / 2"
+          :y="H - 21"
+        >
           {{ m.month.slice(0, 4) }}
         </text>
       </g>

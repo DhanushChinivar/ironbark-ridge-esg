@@ -20,6 +20,10 @@ const error = computed(
 
 const t = (n: number) => n.toLocaleString('en-AU', { maximumFractionDigits: 0 });
 
+// 2025-01 reads as a key, not a date, in the middle of a sentence.
+const monthName = (month: string) =>
+  new Date(`${month}-01T00:00:00`).toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
+
 type Priority = 'critical' | 'high' | 'medium' | 'low';
 interface Item {
   priority: Priority;
@@ -67,6 +71,32 @@ const attention = computed<Item[]>(() => {
         'Includes two lost-time injuries — a fractured forearm requiring surgery, and lacerations requiring sutures — both recorded at severity 1.',
       to: '/safety',
     });
+  }
+
+  // Both scopes measured the same way over the same window, first reported month
+  // to last. Comparing endpoints on one series and a mean on the other would be
+  // picking the method that gives the answer.
+  const reported = e.months.filter((m) => m.hasFuelData);
+  const opening = reported[0];
+  const closing = reported.at(-1);
+  if (opening && closing && opening.scope1Tco2e > 0 && opening.scope2Tco2e > 0) {
+    const fuel = closing.scope1Tco2e / opening.scope1Tco2e - 1;
+    const grid = closing.scope2Tco2e / opening.scope2Tco2e - 1;
+    // Only worth raising where one scope moved and the other did not: two series
+    // drifting together is a change in output, not a change in energy mix.
+    if (fuel > 0.15 && Math.abs(grid) < 0.1) {
+      items.push({
+        priority: 'high',
+        headline: `Scope 1 has risen ${Math.round(fuel * 100)}% since ${monthName(opening.month)}, with Scope 2 flat`,
+        detail:
+          `Grid electricity ${grid < 0 ? 'fell' : 'rose'} ${Math.abs(Math.round(grid * 100))}% across the ` +
+          'same window, so the growth in total emissions is fuel alone. Measured after seven ' +
+          'duplicated invoices were excluded from ' +
+          'the totals; counting them would have overstated the rise. What is driving it — deeper pit, ' +
+          'longer hauls, more plant — is a question for the site.',
+        to: '/emissions',
+      });
+    }
   }
 
   // The cross-dataset finding: emissions moved between scopes rather than falling.
