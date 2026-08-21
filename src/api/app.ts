@@ -6,6 +6,7 @@ import { db } from '../db/client.js';
 import {
   basisSchema,
   dataQualityReportSchema,
+  aiFindingsSchema,
   evidenceSchema,
   incidentSummarySchema,
   incidentTrendSchema,
@@ -14,6 +15,7 @@ import {
 import { monthlyEmissions } from '../domain/emissions.js';
 import { incidentSummary, incidentTrend } from '../domain/incidents.js';
 import { dataQualityReport, evidenceForRow } from '../domain/dataQuality.js';
+import { aiFindings } from '../domain/ai.js';
 
 const api = express.Router();
 
@@ -37,6 +39,10 @@ api.get('/incidents/summary', async (_req, res) => {
 
 api.get('/incidents/trends', async (_req, res) => {
   res.json(incidentTrendSchema.parse(await incidentTrend(db)));
+});
+
+api.get('/ai/findings', async (_req, res) => {
+  res.json(aiFindingsSchema.parse(await aiFindings(db)));
 });
 
 api.get('/data-quality', async (_req, res) => {

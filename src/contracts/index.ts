@@ -101,6 +101,37 @@ export const dataQualityReportSchema = z.object({
   }),
 });
 
+export const aiFindingSchema = z.object({
+  incidentId: z.number().int(),
+  sourceIncidentId: z.string(),
+  incidentDate: z.string(),
+  description: z.string(),
+  typeCode: z.string().nullable(),
+  recordedSeverity: z.number().int().nullable(),
+  category: z.string(),
+  isPsychosocial: z.boolean(),
+  categoryConfidence: z.number().nullable(),
+  categoryReasoning: z.string(),
+  categoryEvidenceQuote: z.string(),
+  severityInconsistent: z.boolean(),
+  suggestedSeverity: z.number().int().nullable(),
+  severityReasoning: z.string().nullable(),
+  severityEvidenceQuote: z.string().nullable(),
+  model: z.string(),
+  promptVersion: z.string(),
+});
+
+export const aiFindingsSchema = z.object({
+  model: z.string().nullable(),
+  promptVersion: z.string().nullable(),
+  totals: z.object({
+    classified: z.number().int(),
+    psychosocial: z.number().int(),
+    severityInconsistent: z.number().int(),
+  }),
+  findings: z.array(aiFindingSchema),
+});
+
 export const evidenceSchema = z.object({
   sourceRowId: z.number().int(),
   fileName: z.string(),
@@ -115,3 +146,5 @@ export type IncidentSummary = z.infer<typeof incidentSummarySchema>;
 export type IncidentTrend = z.infer<typeof incidentTrendSchema>;
 export type DataQualityReport = z.infer<typeof dataQualityReportSchema>;
 export type Evidence = z.infer<typeof evidenceSchema>;
+export type AiFindings = z.infer<typeof aiFindingsSchema>;
+export type AiFinding = z.infer<typeof aiFindingSchema>;
