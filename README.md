@@ -9,6 +9,8 @@ did about each one.
 The thing it is built around: any number on screen can be traced back to the
 CSV line that produced it.
 
+Live at **https://ironbark-ridge-esg.vercel.app**.
+
 ## Architecture
 
 ```
@@ -59,6 +61,13 @@ npm run dev                 # API on http://localhost:3000/api
 npm test                    # 134 tests
 ```
 
+The dashboard is a separate Vite app in `web/`, run alongside the API:
+
+```bash
+npm install --prefix web
+npm run dev --prefix web    # http://localhost:5173, proxying /api to port 3000
+```
+
 Order matters once: seed before ingest. Fuel and electricity resolve their
 emission factors and site mappings at load time, and ingest refuses to start
 without them.
@@ -95,6 +104,17 @@ tests/api/       14   routing, validation, contract conformance
 The rules tests run against rows lifted verbatim from the CSVs, so a passing
 test says something about the data we were given. The domain and API tests run
 against a seeded database, because what they check is the SQL.
+
+## Deployment
+
+Vercel serves the built `web/dist` as static files and routes `/api/*` to a
+single serverless function. That function is four lines: it exports the same
+Express app `npm run dev` starts locally, so there is no second copy of the
+routing to keep in step.
+
+`DATABASE_URL` is the only variable the deployment needs. The Anthropic key
+stays local, because classification runs as a batch job (`npm run enrich`) and
+its output is stored in Postgres — the site never calls the model.
 
 ## Documentation
 
