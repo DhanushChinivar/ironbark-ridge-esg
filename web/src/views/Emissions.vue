@@ -103,8 +103,8 @@ const correction = computed(() => data.value?.correction);
 .page { display: flex; flex-direction: column; gap: 30px; }
 
 .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
-h1 { margin: 0 0 8px; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
-.lede { margin: 0; max-width: 62ch; color: var(--ink-soft); }
+h1 { margin: 0 0 8px; font-size: 33px; font-weight: 800; }
+.lede { margin: 0; max-width: 60ch; color: var(--ink-soft); font-size: 15.5px; }
 
 .toggle { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
 .toggle div { display: flex; gap: 6px; }

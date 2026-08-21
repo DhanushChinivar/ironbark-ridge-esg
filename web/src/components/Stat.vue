@@ -14,7 +14,7 @@ defineProps<{ label: string; value: string; unit?: string; note?: string; tone?:
 
 <style scoped>
 .stat { display: flex; flex-direction: column; gap: 4px; }
-.value { font-size: 30px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.05; }
+.value { font-size: 31px; font-weight: 800; letter-spacing: -0.035em; line-height: 1.05; }
 .value.oxide { color: var(--oxide); }
 .value.slate { color: var(--slate); }
 .unit { font-size: 14px; font-weight: 500; margin-left: 4px; color: var(--ink-faint); }

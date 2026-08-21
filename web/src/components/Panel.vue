@@ -23,7 +23,7 @@ header {
   gap: 16px;
   margin-bottom: 18px;
 }
-h2 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.005em; }
+h2 { margin: 0; font-size: 14.5px; font-weight: 700; }
 .state { margin: 0; color: var(--ink-faint); font-size: 14px; }
 .err { color: var(--critical); }
 </style>

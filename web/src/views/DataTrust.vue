@@ -205,8 +205,8 @@ function firstRowFor(ruleCode: string): number | null {
 
 .rings { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 30px; }
 .head { display: flex; flex-direction: column; gap: 8px; }
-h1 { margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
-.lede { margin: 0; max-width: 68ch; color: var(--ink-soft); }
+h1 { margin: 0; font-size: 33px; font-weight: 800; }
+.lede { margin: 0; max-width: 62ch; color: var(--ink-soft); font-size: 15.5px; }
 
 .files { display: flex; flex-direction: column; }
 .file {

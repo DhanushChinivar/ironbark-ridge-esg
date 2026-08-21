@@ -188,8 +188,8 @@ const attention = computed<Item[]>(() => {
 .page { display: flex; flex-direction: column; gap: 30px; }
 
 .head { display: flex; flex-direction: column; gap: 8px; }
-h1 { margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
-.lede { margin: 0; max-width: 64ch; color: var(--ink-soft); }
+h1 { margin: 0; font-size: 33px; font-weight: 800; }
+.lede { margin: 0; max-width: 62ch; color: var(--ink-soft); font-size: 15.5px; }
 
 .stats {
   display: grid;
