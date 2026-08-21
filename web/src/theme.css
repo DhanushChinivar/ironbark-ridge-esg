@@ -1,28 +1,97 @@
+/* Frosted panels floating over a soft blue field.
+   The panel opacity is not a free choice: the charts sit on it, and glass
+   lightens whatever they are measured against. At 0.80 over the field the
+   effective surface is about #f6fafd, which is the surface the two-series pair
+   and the five-rung ramp below were validated on. Thinning the glass further
+   pushes the pale end of the ramp under its contrast floor. */
 :root {
-  --paper: #eceeed;
-  --panel: #f7f8f7;
-  --ink: #14181b;
-  --ink-soft: #4c575c;
-  --ink-faint: #7e8a8e;
-  --rule: #cdd3d1;
-  --oxide: #9c4526;
-  --slate: #33586b;
+  --field: #e6eff9;
+  --panel: rgba(255, 255, 255, 0.8);
+  --panel-edge: rgba(255, 255, 255, 0.85);
+  --inset: rgba(233, 241, 251, 0.72);
+  --paper: rgba(233, 241, 251, 0.72);
+
+  --ink: #0b0b0b;
+  --ink-soft: #4a5560;
+  --ink-faint: #7b8794;
+  --rule: rgba(19, 70, 130, 0.11);
+
+  /* Fuel and grid electricity: the two marks that must never be confused.
+     Separation 25.4 under protanopia against a floor of 8. The orange is a step
+     darker than the palette's default: over the densest part of the field the
+     glass resolves to about #eef5fc, and the lighter orange missed 3:1 there. */
+  --scope1: #dd5a25;
+  --scope2: #2a78d6;
+  --oxide: #c24a18;
+  --slate: #2a78d6;
+
+  /* One hue, five rungs, darkest first, every other rung so neighbours stay
+     apart. Pale end clears the surface at 2.39:1. */
+  --ramp-1: #0d366b;
+  --ramp-2: #184f95;
+  --ramp-3: #256abf;
+  --ramp-4: #3987e5;
+  --ramp-5: #6da7ec;
+  --ramp-rest: #b3c0cf;
+  --track: rgba(37, 106, 191, 0.13);
+
+  /* Text tones, darker than the marks because small text has to clear more. */
   --amber: #8a6414;
   --critical: #9c2f26;
-  --scope1: #9c4526;
-  --scope2: #33586b;
+
+  /* Status marks. Reserved: never reused as a series colour. */
+  --mark-warning: #fab219;
+  --mark-serious: #ec835a;
+  --mark-critical: #d03b3b;
+
+  /* Two shadows and an inner highlight along the top edge. The highlight is
+     what makes a translucent rectangle read as glass rather than as fog. */
+  --lift:
+    0 1px 1px rgba(13, 54, 107, 0.04),
+    0 8px 24px -6px rgba(13, 54, 107, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --lift-high:
+    0 2px 4px rgba(13, 54, 107, 0.05),
+    0 18px 44px -12px rgba(13, 54, 107, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+
+  --glass: blur(28px) saturate(150%);
+  --radius: 20px;
 }
 
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
-  background: var(--paper);
   color: var(--ink);
   font-family: "Source Serif 4", Georgia, serif;
   font-size: 16px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  background: var(--field);
+}
+
+/* The field the glass has something to refract. Fixed, so panels slide over it
+   rather than carrying it along. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: -20vmax;
+  z-index: -1;
+  /* Weighted to the margins. The colour has to be visible beside the content
+     column without darkening what sits behind the charts. */
+  background:
+    radial-gradient(44vmax 36vmax at 4% 2%, rgba(109, 167, 236, 0.5), transparent 60%),
+    radial-gradient(40vmax 34vmax at 97% 0%, rgba(129, 209, 233, 0.46), transparent 58%),
+    radial-gradient(46vmax 40vmax at 92% 72%, rgba(37, 106, 191, 0.26), transparent 62%),
+    radial-gradient(38vmax 32vmax at 6% 88%, rgba(221, 90, 37, 0.13), transparent 60%),
+    radial-gradient(60vmax 40vmax at 50% 50%, rgba(255, 255, 255, 0.5), transparent 70%);
+  animation: drift 44s ease-in-out infinite alternate;
+}
+
+@keyframes drift {
+  from { transform: translate3d(-2%, -1%, 0) scale(1); }
+  to   { transform: translate3d(2%, 2%, 0) scale(1.06); }
 }
 
 h1, h2, h3, .sans { font-family: Archivo, "Helvetica Neue", sans-serif; }
@@ -38,8 +107,11 @@ h1, h2, h3, .sans { font-family: Archivo, "Helvetica Neue", sans-serif; }
 
 .panel {
   background: var(--panel);
-  border: 1px solid var(--rule);
-  border-radius: 4px;
+  -webkit-backdrop-filter: var(--glass);
+  backdrop-filter: var(--glass);
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--radius);
+  box-shadow: var(--lift);
 }
 
 .num { font-variant-numeric: tabular-nums; }
@@ -49,17 +121,33 @@ a { color: inherit; }
 button {
   font: inherit;
   cursor: pointer;
-  background: none;
-  border: 1px solid var(--rule);
+  background: rgba(255, 255, 255, 0.55);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--panel-edge);
   color: var(--ink-soft);
-  padding: 5px 12px;
-  border-radius: 3px;
+  padding: 6px 15px;
+  border-radius: 999px;
+  box-shadow: 0 1px 2px rgba(13, 54, 107, 0.05);
+  transition: background 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
 }
+button:hover { background: rgba(255, 255, 255, 0.9); color: var(--ramp-2); }
 button[aria-pressed="true"] {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--panel);
+  background: linear-gradient(180deg, var(--ramp-4), var(--ramp-3));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 2px 8px -1px rgba(37, 106, 191, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
-button:focus-visible, a:focus-visible { outline: 2px solid var(--slate); outline-offset: 2px; }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--ramp-3); outline-offset: 2px; }
 
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+/* Glass is a preference, not a requirement. Both of these turn it back into
+   plain opaque surfaces without changing a single layout rule. */
+@media (prefers-reduced-transparency: reduce) {
+  :root { --panel: #ffffff; --paper: #eef4fb; --inset: #eef4fb; --glass: none; }
+  body::before { display: none; }
+  body { background: #eef4fb; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}

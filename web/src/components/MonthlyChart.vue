@@ -14,7 +14,23 @@ const max = computed(() => Math.max(...props.months.map((m) => m.totalTco2e), 1)
 const plotW = W - PAD.left - PAD.right;
 const plotH = H - PAD.top - PAD.bottom;
 const band = computed(() => plotW / props.months.length);
-const barW = computed(() => Math.min(band.value * 0.62, 34));
+const barW = computed(() => Math.min(band.value * 0.52, 26));
+
+// Rounded at the free end, square where it meets the baseline or the segment
+// below. A plain rx would round all four corners and lift the bar off its axis.
+function capped(x: number, y: number, w: number, h: number, r = 4): string {
+  const radius = Math.min(r, w / 2, Math.max(h, 0));
+  if (h <= 0) return '';
+  return [
+    `M${x} ${y + h}`,
+    `V${y + radius}`,
+    `A${radius} ${radius} 0 0 1 ${x + radius} ${y}`,
+    `H${x + w - radius}`,
+    `A${radius} ${radius} 0 0 1 ${x + w} ${y + radius}`,
+    `V${y + h}`,
+    'Z',
+  ].join(' ');
+}
 
 const y = (v: number) => PAD.top + plotH - (v / max.value) * plotH;
 const x = (i: number) => PAD.left + i * band.value + (band.value - barW.value) / 2;
@@ -51,21 +67,17 @@ const fmt = (n: number) => n.toLocaleString('en-AU', { maximumFractionDigits: 0 
           @mouseenter="hovered = i"
           @mouseleave="hovered = null"
         />
-        <rect
+        <path
           class="s2"
-          :x="x(i)"
-          :y="y(m.scope2Tco2e)"
-          :width="barW"
-          :height="plotH - (y(m.scope2Tco2e) - PAD.top)"
-          :opacity="hovered === null || hovered === i ? 1 : 0.35"
+          :d="capped(x(i), y(m.scope2Tco2e), barW, plotH - (y(m.scope2Tco2e) - PAD.top))"
+          :opacity="hovered === null || hovered === i ? 1 : 0.3"
         />
-        <rect
+        <!-- 2px short of the segment below it, so the two scopes stay two marks
+             rather than merging into one column. -->
+        <path
           class="s1"
-          :x="x(i)"
-          :y="y(m.totalTco2e)"
-          :width="barW"
-          :height="y(m.scope2Tco2e) - y(m.totalTco2e)"
-          :opacity="hovered === null || hovered === i ? 1 : 0.35"
+          :d="capped(x(i), y(m.totalTco2e), barW, y(m.scope2Tco2e) - y(m.totalTco2e) - 2)"
+          :opacity="hovered === null || hovered === i ? 1 : 0.3"
         />
         <!-- A month with no fuel data is marked, not left to read as zero. -->
         <text v-if="!m.hasFuelData" class="gap" :x="x(i) + barW / 2" :y="y(m.scope2Tco2e) - 7">

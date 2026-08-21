@@ -4,6 +4,7 @@ import { api } from '../api';
 import { useAsync } from '../composables/useAsync';
 import Panel from '../components/Panel.vue';
 import Stat from '../components/Stat.vue';
+import DonutChart, { type Segment } from '../components/DonutChart.vue';
 
 const summary = useAsync(() => api.incidentSummary());
 const trends = useAsync(() => api.incidentTrends());
@@ -35,6 +36,40 @@ const mix = (counts: Record<string, number>) =>
     .join('  ') || 'no incidents';
 
 const severityLabel = (n: number | null) => (n === null ? 'unresolved' : `severity ${n}`);
+
+// One hue, five rungs, darkest first. The register has eight type codes and a
+// ring cannot carry eight colours a reader can still tell apart, so the tail
+// folds into one neutral segment rather than inventing a sixth and seventh hue.
+const RAMP = ['var(--ramp-1)', 'var(--ramp-2)', 'var(--ramp-3)', 'var(--ramp-4)', 'var(--ramp-5)'];
+
+const byType = computed<Segment[]>(() => {
+  const types = summary.data.value?.byType ?? [];
+  const named = types.slice(0, RAMP.length).map((t, i) => ({
+    label: t.typeCode ?? 'uncoded',
+    value: t.count,
+    color: RAMP[i]!,
+  }));
+
+  const rest = types.slice(RAMP.length).reduce((a, t) => a + t.count, 0);
+  return rest
+    ? [...named, { label: `other (${types.length - RAMP.length})`, value: rest, color: 'var(--ramp-rest)' }]
+    : named;
+});
+
+// Severity is genuinely ordered, so the ramp does its proper job here: darker
+// means more severe. Keyed on the severity itself rather than on position, so
+// the shade means the same thing whether or not every band is present, and
+// stepped by two rungs because neighbouring rungs are too close to read apart.
+const severityColor = (severity: number) =>
+  RAMP[Math.max(RAMP.length - 1 - (severity - 1) * 2, 0)]!;
+
+const bySeverity = computed<Segment[]>(() =>
+  (summary.data.value?.bySeverity ?? []).map((b) => ({
+    label: b.severity === null ? 'unresolved' : `severity ${b.severity}`,
+    value: b.count,
+    color: b.severity === null ? 'var(--ramp-rest)' : severityColor(b.severity),
+  })),
+);
 </script>
 
 <template>
@@ -69,6 +104,24 @@ const severityLabel = (n: number | null) => (n === null ? 'unresolved' : `severi
         />
       </div>
     </Panel>
+
+    <div class="rings">
+      <Panel title="By type" note="as coded in the register" :loading="loading" :error="error">
+        <DonutChart
+          :segments="byType"
+          :centre-value="String(summary.data.value?.total ?? 0)"
+          centre-caption="incidents"
+        />
+      </Panel>
+
+      <Panel title="By severity" note="as recorded" :loading="loading" :error="error">
+        <DonutChart
+          :segments="bySeverity"
+          :centre-value="String(summary.data.value?.total ?? 0)"
+          centre-caption="incidents"
+        />
+      </Panel>
+    </div>
 
     <Panel title="Incidents by month" :loading="loading" :error="error">
       <div class="trend">
@@ -142,7 +195,8 @@ const severityLabel = (n: number | null) => (n === null ? 'unresolved' : `severi
 </template>
 
 <style scoped>
-.page { display: flex; flex-direction: column; gap: 24px; }
+.page { display: flex; flex-direction: column; gap: 30px; }
+.rings { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 30px; }
 .head { display: flex; flex-direction: column; gap: 8px; }
 h1 { margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
 .lede { margin: 0; max-width: 66ch; color: var(--ink-soft); }
@@ -154,11 +208,11 @@ h1 { margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
 .bar {
   width: 100%;
   max-width: 30px;
-  background: var(--slate);
+  background: var(--ramp-3);
   margin-top: auto;
   position: relative;
-  min-height: 2px;
-  border-radius: 1px;
+  min-height: 3px;
+  border-radius: 4px 4px 0 0;
 }
 .n { position: absolute; top: -16px; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--ink-faint); }
 .bar.dim { opacity: 0.35; }

@@ -185,7 +185,7 @@ const attention = computed<Item[]>(() => {
 </template>
 
 <style scoped>
-.page { display: flex; flex-direction: column; gap: 24px; }
+.page { display: flex; flex-direction: column; gap: 30px; }
 
 .head { display: flex; flex-direction: column; gap: 8px; }
 h1 { margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }

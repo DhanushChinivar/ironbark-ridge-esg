@@ -4,8 +4,27 @@ import type { Evidence } from '@contracts';
 import { api } from '../api';
 import { useAsync } from '../composables/useAsync';
 import Panel from '../components/Panel.vue';
+import DonutChart, { type Segment } from '../components/DonutChart.vue';
+import RingMeter from '../components/RingMeter.vue';
 
 const quality = useAsync(() => api.dataQuality());
+
+const files = computed(() => quality.data.value?.files ?? []);
+const rowsRead = computed(() => files.value.reduce((a, f) => a + f.rowsRead, 0));
+const rowsPromoted = computed(() => files.value.reduce((a, f) => a + f.rowsPromoted, 0));
+const rowsRejected = computed(() => files.value.reduce((a, f) => a + f.rowsRejected, 0));
+
+// Disposition, not category: three states a row can end up in, so the colours
+// are the reserved status ones rather than a series ramp.
+const byAction = computed<Segment[]>(() => {
+  const t = quality.data.value?.totals;
+  if (!t) return [];
+  return [
+    { label: 'fixed', value: t.fixed, color: 'var(--ramp-3)' },
+    { label: 'flagged', value: t.flagged, color: 'var(--mark-warning)' },
+    { label: 'rejected', value: t.rejected, color: 'var(--mark-critical)' },
+  ].filter((s) => s.value > 0);
+});
 
 const dataset = ref<string>('all');
 const datasets = computed(() => [
@@ -49,6 +68,36 @@ function firstRowFor(ruleCode: string): number | null {
         Every problem found in the source files, what was done about it, and why. Nothing was
         discarded: the row counts below are enforced by a database constraint, not by convention.
       </p>
+    </div>
+
+    <div class="rings">
+      <Panel title="Rows kept" note="read to promoted" :loading="quality.loading.value" :error="quality.error.value">
+        <RingMeter
+          :value="rowsPromoted"
+          :of="rowsRead"
+          caption="promoted"
+          note="A database constraint enforces read = promoted + rejected."
+        >
+          <ul class="tally">
+            <li><span>rows read</span><b class="mono num">{{ rowsRead }}</b></li>
+            <li><span>promoted</span><b class="mono num">{{ rowsPromoted }}</b></li>
+            <li><span>rejected</span><b class="mono num">{{ rowsRejected }}</b></li>
+          </ul>
+        </RingMeter>
+      </Panel>
+
+      <Panel
+        title="What was done about it"
+        :note="`${quality.data.value?.totals.findings ?? 0} findings`"
+        :loading="quality.loading.value"
+        :error="quality.error.value"
+      >
+        <DonutChart
+          :segments="byAction"
+          :centre-value="String(quality.data.value?.totals.findings ?? 0)"
+          centre-caption="findings"
+        />
+      </Panel>
     </div>
 
     <Panel title="What was read" :loading="quality.loading.value" :error="quality.error.value">
@@ -141,7 +190,20 @@ function firstRowFor(ruleCode: string): number | null {
 </template>
 
 <style scoped>
-.page { display: flex; flex-direction: column; gap: 24px; }
+.page { display: flex; flex-direction: column; gap: 30px; }
+.tally { list-style: none; margin: 0; padding: 0; }
+.tally li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 5px 0;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+}
+.tally b { font-size: 12.5px; font-weight: 500; color: var(--ink); }
+
+.rings { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 30px; }
 .head { display: flex; flex-direction: column; gap: 8px; }
 h1 { margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
 .lede { margin: 0; max-width: 68ch; color: var(--ink-soft); }
@@ -182,7 +244,7 @@ h1 { margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
   padding: 2px 6px;
   border-radius: 2px;
 }
-.act.fixed { background: color-mix(in srgb, var(--slate) 15%, transparent); color: var(--slate); }
+.act.fixed { background: color-mix(in srgb, var(--ramp-3) 14%, transparent); color: var(--ramp-2); }
 .act.flagged { background: color-mix(in srgb, var(--amber) 20%, transparent); color: var(--amber); }
 .act.rejected { background: color-mix(in srgb, var(--critical) 15%, transparent); color: var(--critical); }
 

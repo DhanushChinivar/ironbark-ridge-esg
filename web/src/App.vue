@@ -38,21 +38,28 @@ const nav = [
 </template>
 
 <style scoped>
+/* The bar floats rather than spanning the window, so the field shows down both
+   sides of it and the glass has an edge you can see. */
 header {
-  border-bottom: 1px solid var(--rule);
-  background: var(--panel);
   position: sticky;
-  top: 0;
+  top: 14px;
   z-index: 10;
+  padding: 0 28px;
 }
 
 .bar {
-  max-width: 1120px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 14px 28px;
+  padding: 12px 22px;
   display: flex;
   align-items: center;
   gap: 36px;
+  background: var(--panel);
+  -webkit-backdrop-filter: var(--glass);
+  backdrop-filter: var(--glass);
+  border: 1px solid var(--panel-edge);
+  border-radius: 999px;
+  box-shadow: var(--lift-high);
 }
 
 .site {
@@ -73,13 +80,15 @@ nav a {
   font-size: 14px;
   font-weight: 500;
   color: var(--ink-faint);
-  padding: 6px 12px;
-  border-radius: 3px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  transition: background 0.16s ease, color 0.16s ease;
 }
-nav a:hover { color: var(--ink); }
+nav a:hover { color: var(--ink); background: rgba(255, 255, 255, 0.6); }
 nav a.on {
-  color: var(--ink);
-  background: color-mix(in srgb, var(--slate) 12%, transparent);
+  color: #fff;
+  background: linear-gradient(180deg, var(--ramp-4), var(--ramp-3));
+  box-shadow: 0 2px 8px -1px rgba(37, 106, 191, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .period {
@@ -89,15 +98,16 @@ nav a.on {
 }
 
 main {
-  max-width: 1120px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 32px 28px 96px;
+  padding: 40px 28px 120px;
 }
 
 @media (max-width: 760px) {
-  .bar { flex-wrap: wrap; gap: 12px; padding: 12px 18px; }
+  header { padding: 0 12px; top: 8px; }
+  .bar { flex-wrap: wrap; gap: 12px; padding: 12px 18px; border-radius: 22px; }
   nav { margin-left: 0; order: 3; width: 100%; overflow-x: auto; }
   .period { margin-left: auto; }
-  main { padding: 24px 18px 64px; }
+  main { padding: 28px 18px 72px; }
 }
 </style>

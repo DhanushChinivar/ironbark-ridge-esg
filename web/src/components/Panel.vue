@@ -15,13 +15,13 @@ defineProps<{ title?: string; note?: string; loading?: boolean; error?: string |
 </template>
 
 <style scoped>
-.panel { padding: 20px 22px; }
+.panel { padding: 24px 26px; }
 header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 h2 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.005em; }
 .state { margin: 0; color: var(--ink-faint); font-size: 14px; }
