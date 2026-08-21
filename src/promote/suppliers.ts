@@ -1,5 +1,5 @@
-// Two passes, because a supplier points at another supplier: nothing can be
-// linked until every row has an id.
+// Two passes: a supplier points at another supplier, so nothing can be linked
+// until every row has an id.
 import { sql } from 'drizzle-orm';
 import type { Tx } from '../db/client.js';
 import { supplier } from '../db/schema.js';
@@ -56,7 +56,7 @@ export async function promoteSuppliers(
     landed.rows.map((r) => [r.rowNumber, supplierIdBySourceRowId.get(r.id)]),
   );
 
-  // Every link in one statement rather than a round trip each.
+  // All the links in one statement rather than a round trip each.
   const links: [number, number][] = [];
   for (const s of suppliers) {
     if (s.canonicalRowNumber === null) continue;

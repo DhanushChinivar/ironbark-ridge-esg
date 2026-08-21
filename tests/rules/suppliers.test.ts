@@ -7,12 +7,9 @@ import {
   type RawSupplierRow,
 } from '../../src/rules/suppliers.js';
 
-/**
- * Every row here is lifted verbatim from suppliers.csv, including the
- * misspelling and the blank ABNs. Testing against the real file means a passing
- * test says something about the data we were actually given, rather than about
- * an example written to make the code look right.
- */
+// Rows lifted verbatim from suppliers.csv, misspelling and blank ABNs included.
+// A passing test then says something about the data we were given rather than
+// about an example written to make the code look good.
 const rows: RawSupplierRow[] = (
   [
     ['Ironline Fuel Distributors Pty Ltd', '63 004 085 616', 'Fuel supply', '8940000'],
@@ -55,8 +52,7 @@ describe('normaliseName', () => {
   });
 
   it('does not eat "Co" inside a word', () => {
-    // The suffix list contains "co", so "Coral Coast" is the row that would
-    // break if the pattern were not anchored to word boundaries.
+    // "co" is in the suffix list, so Coral Coast breaks without \b anchors.
     expect(normaliseName('Coral Coast Camp Catering')).toBe('coral coast camp catering');
   });
 
@@ -139,8 +135,7 @@ describe('applySupplierRules', () => {
   });
 
   it('does not use a malformed ABN for matching', () => {
-    // A seven-digit value could collide with another short value by accident.
-    // Only well-formed ABNs are trusted as proof of identity.
+    // A 7-digit value could collide with another short one by accident.
     expect(byRow(TERRAFORM)?.matchMethod).toBeNull();
   });
 
@@ -164,8 +159,7 @@ describe('applySupplierRules', () => {
   });
 
   it('resolves each duplicate pair to a single company', () => {
-    // The full file resolves 15 rows to 13 companies; this fixture holds both
-    // duplicate pairs, so 9 rows resolve to 7.
+    // Full file is 15 rows to 13 companies; this fixture is 9 to 7.
     const canonical = suppliers.filter((s) => s.canonicalRowNumber === null);
     expect(canonical).toHaveLength(rows.length - 2);
   });
@@ -177,15 +171,12 @@ describe('applySupplierRules', () => {
   });
 });
 
-/**
- * Constructed rows, not from the file.
- *
- * In this dataset the two duplicate pairs happen to be separable: Blackwood
- * matches only on ABN, Ironline only on name. Real supplier lists are usually
- * less tidy - a duplicate normally shares both. That case is the one where pass
- * ordering matters, so it needs a fixture of its own rather than going untested
- * because the sample data never happens to produce it.
- */
+// Constructed rows, not from the file.
+//
+// Our two duplicate pairs happen to be separable - Blackwood matches only on ABN,
+// Ironline only on name - so nothing here exercises the ordering guard. A real
+// supplier list usually has duplicates sharing both, which is the case that
+// needs it.
 describe('when a duplicate shares both an ABN and a name', () => {
   const both: RawSupplierRow[] = [
     { rowNumber: 1, supplier_name: 'Statewide Tyre Management', abn: '66 120 908 445', category: 'OTR tyres', fy_spend_aud: '1540000' },
@@ -196,9 +187,8 @@ describe('when a duplicate shares both an ABN and a name', () => {
     const { suppliers } = applySupplierRules(both);
     const dup = suppliers.find((s) => s.rowNumber === 2);
     expect(dup?.canonicalRowNumber).toBe(1);
-    // Both passes would match this pair. If the name pass were allowed to run
-    // over rows already resolved, this would read 'name' and the database would
-    // describe a proven identity as an inference.
+    // Both passes match this pair. Without the guard it reads 'name', and the
+    // database describes a proof as an inference.
     expect(dup?.matchMethod).toBe('abn');
   });
 

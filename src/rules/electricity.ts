@@ -1,10 +1,9 @@
-// Structurally the cleanest of the four files: six meters, eighteen months each,
-// no missing periods, no duplicates, one unit spelling. What it hides is worse
-// than anything in the fuel file - MTR-07 starts reporting megawatt-hours in
-// October 2025 while still labelled kWh, and never recovers.
+// Cleanest file structurally - six meters, 18 months each, no gaps, no
+// duplicates. What it hides is worse than anything in fuel: MTR-07 switches to
+// MWh in October 2025 while still labelled kWh, and never switches back.
 //
-// The corrections themselves live in the database, not here. This function is
-// handed them as data so it stays pure and testable.
+// The corrections live in the database. They get handed in as data so this stays
+// pure.
 import { finding, type Finding } from './finding.js';
 
 export interface RawElectricityRow {
@@ -133,11 +132,9 @@ export function applyElectricityRules(
   return { readings, findings };
 }
 
-// MTR-06 is absent from an otherwise complete sequence, and every meter that
-// does appear covers all eighteen months. The impact is deliberately not
-// asserted: the meter may have been decommissioned rather than omitted, so the
-// finding carries a scale estimate marked illustrative and leaves the question
-// to the site.
+// MTR-06 is missing from an otherwise complete sequence. We can't say what it
+// cost, because the meter may have been decommissioned rather than left out - so
+// the estimate is marked illustrative and the question goes back to the site.
 function flagMeterIdGap(readings: CleanElectricityReading[], findings: Finding[]): void {
   const meters = [...new Set(readings.map((r) => r.meterId))].sort();
   const numbers = meters.map((m) => Number(/(\d+)$/.exec(m)?.[1])).filter((n) => Number.isFinite(n));
@@ -156,8 +153,7 @@ function flagMeterIdGap(readings: CleanElectricityReading[], findings: Finding[]
   for (const r of readings) monthsPerMeter.set(r.meterId, (monthsPerMeter.get(r.meterId) ?? 0) + 1);
   const coverage = [...new Set(monthsPerMeter.values())];
 
-  // Median rather than mean: one meter is four times the size of the others, and
-  // a mean would make the estimate look larger than it should.
+  // Median, not mean - MTR-01 is four times the others and would skew it.
   const totals = meters.map((m) =>
     readings.filter((r) => r.meterId === m).reduce((sum, r) => sum + Number(r.consumptionKwh), 0),
   );
@@ -190,8 +186,7 @@ function flagMeterIdGap(readings: CleanElectricityReading[], findings: Finding[]
   }
 }
 
-// Reported once per meter rather than once per reading, which would bury the
-// point under ninety identical findings.
+// Once per meter, not once per reading - otherwise it's 90 identical findings.
 function flagUnmappableMeters(
   readings: CleanElectricityReading[],
   unmappedLabels: Set<string>,

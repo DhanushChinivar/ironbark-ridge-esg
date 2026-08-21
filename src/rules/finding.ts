@@ -1,7 +1,7 @@
 import { RULES, type RuleCode } from './catalogue.js';
 
-// A finding knows the row *number*, not the database id: the rules layer has
-// never seen the database. Promote translates.
+// Findings carry the row number, not the database id - the rules layer has never
+// seen the database. Promote does the translation.
 export interface Finding {
   ruleCode: RuleCode;
   /** Null for file-level findings, which describe a dataset rather than a row. */
@@ -18,10 +18,6 @@ export function finding(
   extra: Omit<Finding, 'ruleCode' | 'sourceRowNumber'> = {},
 ): Finding {
   return { ruleCode, sourceRowNumber, ...extra };
-}
-
-export function isFlagging(f: Finding): boolean {
-  return RULES[f.ruleCode].action === 'flagged';
 }
 
 export function isRejecting(f: Finding): boolean {

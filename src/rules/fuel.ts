@@ -1,6 +1,5 @@
-// The messiest of the four files: three date formats, four spellings of two
-// units, two cost formats, seven byte-identical duplicates, one negative
-// delivery, and a month with no deliveries at all.
+// The messiest file: 3 date formats, 4 spellings of 2 units, 2 cost formats,
+// 7 byte-identical duplicates, a negative delivery, and a month with nothing in it.
 import { finding, type Finding } from './finding.js';
 
 export interface RawFuelRow {
@@ -55,8 +54,8 @@ const FUEL_TYPES: [RegExp, string][] = [
   [/petrol|ulp/i, 'petrol'],
 ];
 
-// Checked against the file's own median rather than a hardcoded band, so the
-// rule keeps working if fuel prices move. The widest deviation here is 7%.
+// Against the file's own median, not a hardcoded band, so it survives fuel prices
+// moving. Widest deviation in this file is 7%, so it fires on nothing.
 const PRICE_TOLERANCE = 0.15;
 
 export interface ParsedDate {
@@ -64,13 +63,11 @@ export interface ParsedDate {
   precision: 'day' | 'month';
 }
 
-// Slash dates are day-first, and that is not an assumption: 66 rows have a
-// first component above 12 and none has a second component above 12, so no row
-// in this file can be read month-first.
+// Slash dates are day-first. Not an assumption: 66 rows have a first component
+// above 12 and none has a second above 12, so month-first is impossible here.
 //
-// Mon-YY values carry no day at all. Rather than invent one, the row is dated to
-// the first of the month and marked month-precision, so monthly totals stay
-// correct while the imprecision stays visible.
+// Mon-YY has no day. Dated to the 1st and marked month-precision rather than
+// inventing one - monthly totals stay right, the imprecision stays visible.
 export function parseDeliveryDate(raw: string): ParsedDate | null {
   const s = raw.trim();
 
@@ -204,8 +201,7 @@ export function applyFuelRules(rows: RawFuelRow[], rawHeaders: string[] = []): F
             invoiceNo: r.invoice_no,
             litres,
             costAud: cost,
-            // Both figures negative and consistent with each other is what
-            // separates a reversal from a mis-keyed quantity.
+            // Both negative and consistent is what separates a reversal from a typo.
             costAndQuantityAgree: cost !== null && cost < 0,
           },
         }),
@@ -278,9 +274,8 @@ function flagPriceOutliers(deliveries: CleanFuelDelivery[], findings: Finding[])
   });
 }
 
-// A month with no deliveries is not the same as a month with no diesel burned.
-// Reported as a file-level finding so the gap is stated rather than implied by
-// an absent bar on a chart.
+// No deliveries is not the same as no diesel burned. File-level so the gap gets
+// stated rather than implied by a missing bar on a chart.
 function flagMissingMonths(deliveries: CleanFuelDelivery[], findings: Finding[]): void {
   const months = new Set(deliveries.map((d) => d.deliveryDate.slice(0, 7)));
   const sorted = [...months].sort();
