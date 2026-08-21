@@ -1,10 +1,8 @@
-// Pure functions: raw rows in, cleaned suppliers and findings out. No database
-// access, which is what makes these testable against the real rows.
+// Pure functions, no database, so these can be tested against the real rows.
 //
-// Fifteen rows name thirteen companies. The two duplicate pairs need different
-// evidence - Blackwood shares an ABN despite a misspelling, Ironline shares only
-// a name because its second row has no ABN - so the strength of each match is
-// recorded rather than flattened into one "same company" claim.
+// 15 rows, 13 companies. Neither matching strategy finds both duplicates on its
+// own: Blackwood's misspelling defeats name matching, Ironline's blank ABN
+// defeats ABN matching. So match_method records which one applied.
 import { finding, type Finding } from './finding.js';
 
 export interface RawSupplierRow {
@@ -107,9 +105,8 @@ export function applySupplierRules(rows: RawSupplierRow[]): SupplierRuleResult {
   return { suppliers, findings };
 }
 
-// Strongest evidence first. A shared ABN proves two rows are one company; a
-// shared name only suggests it, so name matching runs second and never
-// overrides an ABN match.
+// Strongest evidence first. A shared ABN is proof, a shared name is a guess, so
+// the name pass runs second and never overwrites an ABN match.
 function resolveDuplicates(suppliers: CleanSupplier[], findings: Finding[]): void {
   const byAbn = new Map<string, CleanSupplier[]>();
   for (const s of suppliers) {
@@ -149,7 +146,7 @@ function resolveDuplicates(suppliers: CleanSupplier[], findings: Finding[]): voi
 
   for (const group of byName.values()) {
     if (group.length < 2) continue;
-    // Prefer the record carrying an ABN: the more complete of the two.
+    // Prefer whichever has an ABN.
     const canonical = group.find((s) => s.abnDigits) ?? group[0];
     if (!canonical) continue;
     for (const dup of group) {

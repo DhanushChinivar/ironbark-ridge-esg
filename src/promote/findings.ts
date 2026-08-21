@@ -1,12 +1,12 @@
-// Translates findings from row numbers into database ids, writes them, and
-// reconciles the per-file counters. The counters are constrained in the
-// database, so a miscount fails the write rather than producing a report that
-// does not add up.
+// Turns row numbers into database ids, writes the findings, reconciles the
+// counters. The counters have check constraints on them, so a miscount fails
+// the write instead of shipping a report that doesn't add up.
 import { eq, inArray } from 'drizzle-orm';
 import type { Tx } from '../db/client.js';
 import { dataQualityFinding, sourceFile, sourceRow } from '../db/schema.js';
 import { RULES } from '../rules/catalogue.js';
 import { isRejecting, type Finding } from '../rules/finding.js';
+import { validateDetail } from '../rules/finding-detail.js';
 import type { LandedFile } from '../ingest/land.js';
 
 export interface PromotionSummary {
@@ -35,8 +35,8 @@ export async function writeFindings(
       .filter((n): n is number => n !== null),
   );
 
-  // Distinct rows, not findings: Ironline's duplicate carries two flagged
-  // findings but is one flagged row.
+  // Rows, not findings. Ironline's duplicate has two flagged findings but is one
+  // flagged row, and counting findings would eventually break the constraint.
   const flaggedRowNumbers = new Set(
     findings
       .filter((f) => RULES[f.ruleCode].action === 'flagged')
@@ -49,7 +49,7 @@ export async function writeFindings(
     return {
       ingestionRunId,
       ruleCode: f.ruleCode,
-      // From the catalogue, so a finding cannot contradict its own rule.
+      // From the catalogue, so a finding can't contradict its own rule.
       severity: r.severity,
       action: r.action,
       dataset,
@@ -60,7 +60,8 @@ export async function writeFindings(
       correctedValue: f.correctedValue ?? null,
       message: r.message,
       rationale: r.rationale,
-      detail: f.detail ?? null,
+      // Throws if the payload doesn't match the shape declared for this rule.
+      detail: validateDetail(f.ruleCode, f.detail),
     };
   });
 

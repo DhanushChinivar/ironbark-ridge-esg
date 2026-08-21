@@ -1,14 +1,11 @@
-// The smallest file and the most interesting rule.
+// Severity comes in two codings, 1/2/3 and Low/Medium. A lookup table is the
+// obvious fix but doesn't work: the register reuses description text, and where
+// the same description appears under both codings, "Low" is 2 among dust
+// exceedances and 1 among tyre blowouts. One global value would be wrong for one
+// of them.
 //
-// Severity is recorded two ways: as 1/2/3, and as Low/Medium. The obvious fix is
-// a lookup table, but "Low" cannot be mapped globally - the register uses
-// templated descriptions, and where the same description appears under both
-// codings it stands in for 1 in some incident types and 2 in others. A single
-// global value would be wrong for one group or the other.
-//
-// So a textual severity is resolved per incident, from the numerically coded
-// incidents that share its description. Where no such sibling exists, severity
-// stays null rather than being coerced into a number we cannot defend.
+// So textual severities are resolved per incident from the numerically coded
+// incidents sharing their description. No sibling means severity stays null.
 import { finding, type Finding } from './finding.js';
 
 export interface RawIncidentRow {
@@ -57,12 +54,8 @@ export function parseIncidentDate(raw: string): string | null {
   return `${y}-${m!.padStart(2, '0')}-${d!.padStart(2, '0')}`;
 }
 
-/**
- * Numeric severities coded against each description, so a textual severity can
- * be resolved from its siblings. Returns a single value only where the siblings
- * agree - conflicting siblings resolve to nothing, since guessing between them
- * would be inventing a number.
- */
+// Numeric severities indexed by description. Returns a value only where the
+// siblings agree; conflicting siblings resolve to nothing rather than a guess.
 export function severityByDescription(rows: RawIncidentRow[]): Map<string, number | null> {
   const seen = new Map<string, Set<number>>();
   for (const r of rows) {
@@ -106,8 +99,7 @@ export function applyIncidentRules(
     let severityNormalised = input.severityScale.get(severityRaw) ?? null;
 
     if (severityNormalised === null) {
-      // Not globally mappable, so look for numerically coded incidents sharing
-      // this description.
+      // Not in the scale, so look for numeric siblings.
       const fromSiblings = siblings.get(r.description) ?? null;
       const detail = {
         rawSeverity: severityRaw,
@@ -156,9 +148,8 @@ export function applyIncidentRules(
   return { incidents, findings };
 }
 
-// An identifier used for two different events. Both rows are kept: the register
-// is the operational record, and deciding which one is "really" INC-2025-011 is
-// not ours to make.
+// One identifier, two different events. Both rows stay - deciding which is
+// "really" INC-2025-011 isn't our call.
 function flagIdCollisions(rows: RawIncidentRow[], findings: Finding[]): void {
   const byId = new Map<string, RawIncidentRow[]>();
   for (const r of rows) byId.set(r.incident_id, [...(byId.get(r.incident_id) ?? []), r]);
