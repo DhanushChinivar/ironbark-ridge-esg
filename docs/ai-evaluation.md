@@ -25,7 +25,7 @@ score is what you would expect from a model that can apply stated criteria
 consistently, and it looks identical to a model that genuinely recognises a
 psychosocial hazard. The evaluation could not tell the two apart.
 
-So there is a second prompt. `classify-v2` withholds the category definitions,
+So there is a second prompt. `no-criteria` withholds the category definitions,
 the psychosocial criteria and the severity threshold, and asks for the same
 three judgements unaided. Same model, same tool schema, same 42 incidents, same
 labels. The tool still constrains the category to eight values — that cannot be
@@ -38,13 +38,13 @@ Both passes are stored. `incident_classification` and `severity_flag` carry a
 ablation can sit in the same database as the results the dashboard serves.
 
 ```bash
-npm run enrich   -- --prompt=classify-v2
-npm run evaluate -- --prompt=classify-v2
+npm run enrich   -- --prompt=no-criteria
+npm run evaluate -- --prompt=no-criteria
 ```
 
 ## Results
 
-| | v1 (criteria stated) | v2 (criteria withheld) |
+| | criteria stated | criteria withheld |
 |---|---|---|
 | category accuracy | 42/42 · 100% | 42/42 · 100% |
 | psychosocial recall | 4/4 · 100% | 4/4 · 100% |
@@ -61,18 +61,19 @@ hazard is. The headline claim — four hazards in the register, none coded as su
 
 ### The severity flagging does not
 
-Without the threshold, the model raises nine flags instead of four:
+Without the threshold, the ablation raises nine flags instead of four:
 
 ```
-v1   INC-2025-118   recorded 1 -> 4     v2   INC-2025-118   recorded 1 -> 4
-     INC-2025-127   recorded 1 -> 3          INC-2025-127   recorded 1 -> 3
-     INC-2025-141   recorded 1 -> 4          INC-2025-141   recorded 1 -> 3
-     INC-2026-109   recorded 1 -> 3          INC-2026-109   recorded 1 -> 2
-                                             INC-2025-008   recorded 3 -> 2   ✗
-                                             INC-2026-021   recorded 3 -> 2   ✗
-                                             INC-2026-034   recorded 2 -> 1   ✗
-                                             INC-2026-131   recorded 3 -> 2   ✗
-                                             INC-2026-134   recorded 2 -> 3   ✗
+criteria stated                 criteria withheld
+  INC-2025-118   1 -> 4           INC-2025-118   1 -> 4
+  INC-2025-127   1 -> 3           INC-2025-127   1 -> 3
+  INC-2025-141   1 -> 4           INC-2025-141   1 -> 3
+  INC-2026-109   1 -> 3           INC-2026-109   1 -> 2
+                                  INC-2025-008   3 -> 2   ✗
+                                  INC-2026-021   3 -> 2   ✗
+                                  INC-2026-034   2 -> 1   ✗
+                                  INC-2026-131   3 -> 2   ✗
+                                  INC-2026-134   2 -> 3   ✗
 ```
 
 Four of the five false positives point *downward*: the model arguing a severity
@@ -81,8 +82,9 @@ job. Under-recording harm is the compliance exposure; over-recording it is not,
 and a report full of "this incident was rated too seriously" would be noise a
 sustainability lead has to wade through.
 
-v1 avoids this because its rule has a direction built in — flag only where the
-recorded severity is 1 or 2 *and* the description names treatment beyond first
+The `with-criteria` prompt avoids this because its rule has a direction built
+in — flag only where the recorded severity is 1 or 2 *and* the description names
+treatment beyond first
 aid or a persisting health effect. The ablation shows that constraint is doing
 real work, not decorating the prompt.
 
@@ -93,8 +95,8 @@ point of fixing it first.
 
 ### The confidence number turns out to be worth something
 
-v1 produced no errors, so its confidence could not be calibrated against
-anything. v2's errors make it measurable:
+The `with-criteria` prompt produced no errors, so its confidence could not be
+calibrated against anything. The ablation's errors make it measurable:
 
 ```
 severity flag confidence when right   0.725  (n=4)
@@ -107,12 +109,17 @@ around 0.7 would have recovered most of the lost precision, which means the
 number is usable for routing rather than decoration.
 
 The same evidence undercuts the recall figure slightly. INC-2026-109 is counted
-as found in v2, but at 0.55 confidence suggesting 1 → 2 — indistinguishable by
-confidence from the flags that are wrong. "4/4 recall" and "found it for the
-right reasons" are not the same claim.
+as found by the ablation, but at 0.55 confidence suggesting 1 → 2 —
+indistinguishable by confidence from the flags that are wrong. "4/4 recall" and
+"found it for the right reasons" are not the same claim.
 
 ## What this evaluation still cannot tell you
 
+- **Grounding is not correctness.** The substring check proves a quote was taken
+  from the record rather than invented. It says nothing about whether the
+  judgement drawn from that quote is right — a model can quote accurately and
+  still classify wrongly. Fabrication is caught by the check; misreading is only
+  caught by the labels, which is the next limitation.
 - **n=4 on both interesting classes.** One disagreement moves recall by 25
   points. These are directional results, not measurements.
 - **The category enum was never ablated,** so category accuracy across both runs

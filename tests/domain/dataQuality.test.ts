@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { db } from '../../src/db/client.js';
 import { dataQualityReport, evidenceForRow } from '../../src/domain/dataQuality.js';
-import { validateDetail } from '../../src/rules/finding-detail.js';
+import { validateDetail } from '../../src/rules/findingDetail.js';
 
 describe('dataQualityReport', () => {
   it('reports all four source files', async () => {

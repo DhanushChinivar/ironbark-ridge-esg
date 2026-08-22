@@ -1,6 +1,6 @@
-// Calls the model, validates what comes back, and checks every quote against the
-// source text. A quote that is not an exact substring means the assessment it
-// supports is discarded: the model may interpret the description, never add to it.
+// Every quote is checked against the source text. One that is not an exact
+// substring discards the assessment it supports: the model may interpret the
+// description, never add to it.
 import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
 import { env, requireAnthropicKey } from '../env.js';

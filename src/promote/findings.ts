@@ -6,7 +6,7 @@ import type { Tx } from '../db/client.js';
 import { dataQualityFinding, sourceFile, sourceRow } from '../db/schema.js';
 import { RULES } from '../rules/catalogue.js';
 import { isRejecting, type Finding } from '../rules/finding.js';
-import { validateDetail } from '../rules/finding-detail.js';
+import { validateDetail } from '../rules/findingDetail.js';
 import type { LandedFile } from '../ingest/land.js';
 
 export interface PromotionSummary {

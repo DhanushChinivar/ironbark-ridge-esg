@@ -1,12 +1,6 @@
-// The classification prompts. Every stored result records which one produced
-// it, so two versions can sit in the database at once and be compared.
-//
-// v1 states the taxonomy: the category definitions, the psychosocial criteria
-// from the Code of Practice, and the severity flagging rule. v2 withholds all
-// of it and asks for the same judgements unaided. v1 is what the product runs;
-// v2 exists because an evaluation of v1 alone cannot tell consistent
-// application of stated criteria apart from genuine discovery, and the
-// difference between the two scores is the only thing that can.
+// Two prompts differing only in whether the criteria are stated. Every stored
+// result records which one produced it, so both can sit in the database and be
+// compared. Why that comparison matters: docs/ai-evaluation.md.
 
 
 export const CATEGORY_GUIDE = `
@@ -19,7 +13,7 @@ export const CATEGORY_GUIDE = `
 - psychosocial: see below
 - infrastructure: utilities and site services failure`.trim();
 
-const V1_SYSTEM = `
+const WITH_CRITERIA_SYSTEM = `
 You classify safety incidents for a Queensland open-cut coal mine. Your output
 goes into a compliance report, so a finding you cannot support from the text is
 worse than no finding at all.
@@ -66,11 +60,9 @@ the assessment it supports.
 `.trim();
 
 
-// Same task, same output contract, criteria withheld. The tool schema still
-// constrains the category to eight labels - that cannot be ablated without
-// making the two runs incomparable - so this tests whether the model can apply
-// the criteria unaided, not whether it can invent the vocabulary.
-const V2_SYSTEM = `
+// Same task, same output contract, criteria withheld. The category enum stays,
+// since removing it would make the two runs incomparable.
+const NO_CRITERIA_SYSTEM = `
 You classify safety incidents for a Queensland open-cut coal mine. Your output
 goes into a compliance report, so a finding you cannot support from the text is
 worse than no finding at all.
@@ -92,15 +84,14 @@ the assessment it supports.
 `.trim();
 
 export const PROMPTS = {
-  'classify-v1': { version: 'classify-v1', system: V1_SYSTEM },
-  'classify-v2': { version: 'classify-v2', system: V2_SYSTEM },
+  'with-criteria': { version: 'with-criteria', system: WITH_CRITERIA_SYSTEM },
+  'no-criteria': { version: 'no-criteria', system: NO_CRITERIA_SYSTEM },
 } as const;
 
 export type PromptVersion = keyof typeof PROMPTS;
 
-// What the API serves. Changing this changes which stored pass the dashboard
-// reads, so it is not something an ablation run should touch.
-export const ACTIVE_PROMPT: PromptVersion = 'classify-v1';
+// What the API serves. An ablation run must not change this.
+export const ACTIVE_PROMPT: PromptVersion = 'with-criteria';
 
 export function resolvePrompt(version: string): (typeof PROMPTS)[PromptVersion] {
   const prompt = PROMPTS[version as PromptVersion];
@@ -128,8 +119,7 @@ export function buildUserMessage(incident: {
   ].join('\n');
 }
 
-// Anthropic tool schema. Using a tool rather than asking for JSON in prose
-// means the model cannot return anything else.
+// A tool rather than "return JSON": the model cannot reply with anything else.
 export const ASSESSMENT_TOOL = {
   name: 'record_assessment',
   description: 'Record the classification and severity assessment for one incident.',

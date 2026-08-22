@@ -2,7 +2,7 @@
 // disagreement, so a reader can audit the labels rather than trust them.
 //
 //   npm run evaluate                          scores the prompt the dashboard reads
-//   npm run evaluate -- --prompt=classify-v2  scores an ablation stored alongside it
+//   npm run evaluate -- --prompt=no-criteria  scores an ablation stored alongside it
 import { and, eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { incident, incidentClassification, incidentLabel, severityFlag } from '../db/schema.js';
@@ -57,30 +57,58 @@ if (rows.every((r) => r.predictedCategory === null)) {
   throw new Error(`No results stored for ${prompt.version}. Run "npm run enrich -- --prompt=${prompt.version}" first.`);
 }
 
-const pct = (n: number, d: number) => (d === 0 ? 'n/a' : `${((n / d) * 100).toFixed(0)}%`);
-
-function binary(actual: boolean[], expected: boolean[]) {
-  let tp = 0, fp = 0, fn = 0, tn = 0;
-  actual.forEach((a, i) => {
+// Plain counts rather than metric names: at 42 rows the words carry more.
+// "Missed" is recall and "false alarms" is precision, if asked.
+function tally(found: boolean[], expected: boolean[]) {
+  let hit = 0, missed = 0, falseAlarm = 0;
+  found.forEach((f, i) => {
     const e = expected[i]!;
-    if (a && e) tp += 1;
-    else if (a && !e) fp += 1;
-    else if (!a && e) fn += 1;
-    else tn += 1;
+    if (f && e) hit += 1;
+    else if (!f && e) missed += 1;
+    else if (f && !e) falseAlarm += 1;
   });
-  return { tp, fp, fn, tn };
+  return { hit, missed, falseAlarm, inLabels: hit + missed };
 }
 
-const categoryHits = rows.filter((r) => r.predictedCategory === r.expectedCategory).length;
-const psycho = binary(rows.map((r) => r.predictedPsychosocial ?? false), rows.map((r) => r.expectedPsychosocial));
-const sev = binary(rows.map((r) => r.predictedSeverityConcern ?? false), rows.map((r) => r.expectedSeverityConcern));
+const rightCategory = rows.filter((r) => r.predictedCategory === r.expectedCategory).length;
+const psycho = tally(rows.map((r) => r.predictedPsychosocial ?? false), rows.map((r) => r.expectedPsychosocial));
+const sev = tally(rows.map((r) => r.predictedSeverityConcern ?? false), rows.map((r) => r.expectedSeverityConcern));
 
-console.log(`\nEvaluation: ${rows[0]?.model} / ${prompt.version}, n=${rows.length}\n`);
-console.log(`  category accuracy        ${categoryHits}/${rows.length}  ${pct(categoryHits, rows.length)}`);
-console.log(`  psychosocial recall      ${psycho.tp}/${psycho.tp + psycho.fn}  ${pct(psycho.tp, psycho.tp + psycho.fn)}`);
-console.log(`  psychosocial precision   ${psycho.tp}/${psycho.tp + psycho.fp}  ${pct(psycho.tp, psycho.tp + psycho.fp)}`);
-console.log(`  severity recall          ${sev.tp}/${sev.tp + sev.fn}  ${pct(sev.tp, sev.tp + sev.fn)}`);
-console.log(`  severity precision       ${sev.tp}/${sev.tp + sev.fp}  ${pct(sev.tp, sev.tp + sev.fp)}`);
+// enrich stores nothing when a quote fails, so the join comes back empty.
+const dropped = rows.filter((r) => r.predictedCategory === null).length;
+
+const pad = (n: number) => String(n).padStart(3);
+
+console.log(`\nChecked ${rows.length} incidents against ${rows.length} hand-written labels.`);
+console.log(`Model ${rows[0]?.model}, prompt ${prompt.version}.\n`);
+
+console.log('Hazard category');
+console.log(`  got right             ${pad(rightCategory)} of ${rows.length}`);
+console.log(`  got wrong             ${pad(rows.length - rightCategory)}`);
+
+console.log(`\nPsychosocial hazards      ${pad(psycho.inLabels)} in the labels`);
+console.log(`  found                 ${pad(psycho.hit)}`);
+console.log(`  missed                ${pad(psycho.missed)}`);
+console.log(`  false alarms          ${pad(psycho.falseAlarm)}`);
+
+console.log(`\nSeverity concerns         ${pad(sev.inLabels)} in the labels`);
+console.log(`  found                 ${pad(sev.hit)}`);
+console.log(`  missed                ${pad(sev.missed)}`);
+console.log(`  false alarms          ${pad(sev.falseAlarm)}`);
+
+console.log('\nEvidence');
+console.log(`  quote found in the source text, finding kept     ${pad(rows.length - dropped)}`);
+console.log(`  quote not found, finding thrown away             ${pad(dropped)}`);
+
+// The counts are small enough that one disagreement moves them a long way.
+const smallest = Math.min(psycho.inLabels, sev.inLabels);
+if (smallest > 0 && smallest < 10) {
+  const oneMiss = Math.round(((smallest - 1) / smallest) * 100);
+  console.log(
+    `\nOnly ${smallest} incidents in the labels carry these, so a single miss would take` +
+      `\n100% down to ${oneMiss}%. Read this as a direction, not a measurement.`,
+  );
+}
 
 const disagreements = rows.filter(
   (r) =>
@@ -89,7 +117,7 @@ const disagreements = rows.filter(
     (r.predictedSeverityConcern ?? false) !== r.expectedSeverityConcern,
 );
 
-console.log(`\n  disagreements            ${disagreements.length}/${rows.length}`);
+console.log(`\nWhere the model and the labels disagree: ${disagreements.length} of ${rows.length}`);
 
 for (const d of disagreements) {
   console.log(`\n${d.sourceIncidentId}  ${d.incidentDate}`);
@@ -108,30 +136,30 @@ for (const d of disagreements) {
   }
 }
 
-// Whether the model's own confidence tracks correctness. If it does not, the
-// number is decoration and should not be used to route anything. Reported per
-// task, because the two are not interchangeable: a run can be perfect on
-// category and wrong on severity, and one mean would hide it.
+// Whether the model's own confidence tracks being right; if it does not, the
+// number is decoration. Per task, because one average would hide a run that is
+// perfect on category and wrong on severity.
 const mean = (xs: (string | number | null)[]) =>
   xs.length ? xs.reduce((a: number, x) => a + Number(x ?? 0), 0) / xs.length : 0;
 
-function calibration(label: string, right: typeof rows, wrong: typeof rows, pick: (r: (typeof rows)[number]) => string | number | null) {
-  console.log(`\n  ${label} confidence when right  ${mean(right.map(pick)).toFixed(3)}  (n=${right.length})`);
-  console.log(`  ${label} confidence when wrong  ${wrong.length ? mean(wrong.map(pick)).toFixed(3) : 'n/a'}  (n=${wrong.length})`);
+function sureness(what: string, right: typeof rows, wrong: typeof rows, pick: (r: (typeof rows)[number]) => string | number | null) {
+  const show = (xs: typeof rows) => (xs.length ? mean(xs.map(pick)).toFixed(2) : '—');
+  console.log(`\nHow sure the model said it was, ${what}`);
+  console.log(`  when it agreed with the labels    ${show(right).padStart(4)}   (${right.length} cases)`);
+  console.log(`  when it did not                   ${show(wrong).padStart(4)}   (${wrong.length} cases)`);
 }
 
-calibration(
-  'category',
+sureness(
+  'picking a category',
   rows.filter((r) => r.predictedCategory === r.expectedCategory),
   rows.filter((r) => r.predictedCategory !== r.expectedCategory),
   (r) => r.categoryConfidence,
 );
 
-// Only over the flags actually raised. Scoring the silent majority would drown
-// the handful of judgements this number is meant to help triage.
+// Only the flags it raised: averaging the silent majority drowns them.
 const raised = rows.filter((r) => r.predictedSeverityConcern);
-calibration(
-  'severity flag',
+sureness(
+  'raising a severity concern',
   raised.filter((r) => r.expectedSeverityConcern),
   raised.filter((r) => !r.expectedSeverityConcern),
   (r) => r.severityConfidence,

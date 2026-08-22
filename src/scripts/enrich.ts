@@ -1,8 +1,8 @@
-// Runs classification over every incident and persists the results. Offline:
-// the API never calls a model at request time.
+// Classifies every incident and stores the result. Offline: the API never calls
+// a model at request time.
 //
 //   npm run enrich                          the prompt the dashboard reads
-//   npm run enrich -- --prompt=classify-v2  an ablation, stored alongside it
+//   npm run enrich -- --prompt=no-criteria  an ablation, stored alongside it
 import { eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { incident, incidentClassification, severityFlag } from '../db/schema.js';
@@ -27,9 +27,8 @@ const rows: IncidentForClassification[] = await db
 
 if (!rows.length) throw new Error('No incidents found. Run "npm run ingest" first.');
 
-// A re-run replaces the previous pass of this prompt, and leaves every other
-// version alone - that is what makes two passes comparable rather than
-// sequential.
+// Replaces this prompt's previous pass and leaves other versions alone, which
+// is what lets two passes coexist rather than overwrite each other.
 await db.delete(incidentClassification).where(eq(incidentClassification.promptVersion, prompt.version));
 await db.delete(severityFlag).where(eq(severityFlag.promptVersion, prompt.version));
 

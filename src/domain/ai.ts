@@ -1,9 +1,8 @@
-// Model output joined back to the incidents it describes. Read only: the
-// classifications were written offline by npm run enrich.
+// Model output joined back to the incidents it describes. Read only; written
+// offline by npm run enrich.
 //
-// Pinned to one prompt version. The table holds every pass ever run, including
-// ablations, and without this filter a second version would double each finding
-// and fan the severity join out across both.
+// Pinned to one prompt version: the table holds every pass ever run, and without
+// the filter a second version doubles every finding.
 import { sql } from 'drizzle-orm';
 import type { Tx } from '../db/client.js';
 import type { AiFindings } from '../contracts/index.js';

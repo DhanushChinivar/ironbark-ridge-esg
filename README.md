@@ -26,16 +26,25 @@ and records what changed as a finding pointing back at the row that caused it.
 A database constraint enforces that every row read is either promoted or
 rejected, so nothing can be dropped silently.
 
-| Directory | Responsibility |
+Directories follow the pipeline rather than the technology, so the flow above
+reads top to bottom in the tree:
+
+| Path | Responsibility |
 |---|---|
-| `src/db` | Drizzle schema and migrations |
 | `src/ingest` | Land raw CSV rows verbatim |
-| `src/rules` | Pure validation and normalisation, 21 rules |
+| `src/rules` | Pure validation and normalisation, 21 rules — no database import, which is why most tests need no database |
 | `src/promote` | Raw → typed domain tables |
-| `src/domain` | Emissions and incident calculations |
+| `src/domain` | Emissions, incident and data quality calculations |
+| `src/ai` | Offline classification: prompts, hand labels, grounding check |
 | `src/contracts` | Zod schemas shared by the API and the frontend |
 | `src/api` | HTTP layer (Express) |
-| `src/ai` | Offline LLM enrichment — not built yet |
+| `src/db` | Drizzle schema and migrations |
+| `src/scripts` | Command-line entry points: seed, ingest, enrich, evaluate, serve |
+| `api/` | Vercel's serverless entry. Four lines, and it exports the app from `src/api` — the deployment adapter, not a second API |
+| `web/` | Vue dashboard, its own package |
+| `tests/` | Mirrors `src`: `rules` / `domain` / `api` |
+| `data/` | The four operational CSVs plus the emission factors, unmodified |
+| `docs/` | Schema diagram, labelling rubric, evaluation method |
 
 ## Stack
 
