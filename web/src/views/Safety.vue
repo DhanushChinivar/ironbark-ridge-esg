@@ -7,6 +7,7 @@ import Panel from '../components/Panel.vue';
 import Stat from '../components/Stat.vue';
 import DonutChart, { type Segment } from '../components/DonutChart.vue';
 import SubTabs from '../components/SubTabs.vue';
+import TraceLink from '../components/TraceLink.vue';
 
 const tabs = [
   { to: '/safety', label: 'Findings' },
@@ -223,6 +224,12 @@ const bySeverity = computed<Segment[]>(() =>
         <template v-else>Hover a month for its severity and type mix</template>
       </div>
     </Panel>
+
+    <TraceLink
+      to="/safety/method"
+      cta="See how this finding was generated"
+      lede="One incident from the record as it was read to the finding that was kept, including the check that decides."
+    />
 
     <Panel title="AI findings" note="AI analysis · criteria-guided" :loading="loading" :error="error">
       <p class="lede-sm">

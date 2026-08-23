@@ -19,6 +19,8 @@ The main principle behind the project is simple:
 > its source, with any changes and decisions clearly explained.**
 
 
+**Live:** <https://ironbark-ridge-esg.vercel.app>
+
 **Stack:** TypeScript, PostgreSQL/Neon, Drizzle, Express, Vue 3 and the
 Anthropic API.
 

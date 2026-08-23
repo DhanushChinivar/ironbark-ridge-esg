@@ -8,6 +8,7 @@ import Panel from '../components/Panel.vue';
 import DonutChart, { type Segment } from '../components/DonutChart.vue';
 import RingMeter from '../components/RingMeter.vue';
 import SubTabs from '../components/SubTabs.vue';
+import TraceLink from '../components/TraceLink.vue';
 
 const tabs = [
   { to: '/data-trust', label: 'Ledger' },
@@ -138,6 +139,12 @@ function firstRowFor(ruleCode: string): number | null {
         />
       </Panel>
     </div>
+
+    <TraceLink
+      to="/data-trust/suppliers"
+      cta="See how records were matched"
+      lede="Fifteen supplier rows resolve to thirteen companies, each merge stating the evidence it rests on."
+    />
 
     <Panel title="What was read" :loading="quality.loading.value" :error="quality.error.value">
       <div class="files">

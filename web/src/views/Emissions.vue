@@ -6,6 +6,7 @@ import Panel from '../components/Panel.vue';
 import Stat from '../components/Stat.vue';
 import MonthlyChart, { type Focus } from '../components/MonthlyChart.vue';
 import SubTabs from '../components/SubTabs.vue';
+import TraceLink from '../components/TraceLink.vue';
 
 const tabs = [
   { to: '/emissions', label: 'Figures' },
@@ -78,6 +79,12 @@ const correction = computed(() => data.value?.correction);
         />
       </div>
     </Panel>
+
+    <TraceLink
+      to="/emissions/calculation"
+      cta="See how this value was calculated"
+      lede="Every figure above, unrolled to the source rows it was summed from, and reconciled."
+    />
 
     <Panel
       v-for="c in charts"

@@ -11,6 +11,20 @@ CSV line that produced it.
 
 Live at **https://ironbark-ridge-esg.vercel.app**.
 
+## Where to look
+
+Four sections, and three of them have a second page that shows the working
+rather than describing it. Those three are the point of the project:
+
+| Page | What it shows |
+|---|---|
+| [`/emissions/calculation`](https://ironbark-ridge-esg.vercel.app/emissions/calculation) | One month unrolled: source file and line, quantity used, factor applied, result per row — then reconciled against the figure the dashboard reports by a separate query |
+| [`/safety/method`](https://ironbark-ridge-esg.vercel.app/safety/method) | One classification taken apart: the instruction actually sent, the record given, the structured answer, and the quote check re-run live against the stored description |
+| [`/data-trust/suppliers`](https://ironbark-ridge-esg.vercel.app/data-trust/suppliers) | 15 supplier rows resolved to 13 companies, with each merge stating whether it rests on a shared ABN or on a name alone |
+
+If you only open one, open the first. It is where "every number traces back to a
+CSV line" stops being a claim.
+
 ## Architecture
 
 ```
