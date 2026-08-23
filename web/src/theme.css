@@ -39,6 +39,28 @@
   --amber: #8a6414;
   --critical: #9c2f26;
 
+  /* Severity as a risk scale rather than a rank. Blue to orange to deep red,
+     using hues the app already has rather than introducing a yellow: worst pair
+     15.7 under deuteranopia against a floor of 8, checked on all pairs since
+     donut segments touch, and all three clear 3:1 on the glass surface. */
+  --sev-1: #256abf;
+  --sev-2: #dd5a25;
+  --sev-3: #a52a2a;
+  --sev-none: #b3c0cf;
+
+  /* What happened to a row. Blue, amber and red rather than green, amber and
+     red: green against red measures 2.1 under deuteranopia and green against
+     amber 2.6 under protanopia, both effectively identical. This trio clears
+     10.2 on all pairs and 3:1 contrast, and every badge carries a glyph so the
+     meaning never rests on hue alone. */
+  --act-fixed: #256abf;
+  --act-flagged: #ec9a1a;
+  --act-rejected: #c43333;
+
+  /* The bright amber above is for fills, where size carries it. As small text
+     it only reaches 2.17:1, so labels use the darker ink at 4.44:1. */
+  --act-flagged-ink: #a5660a;
+
   /* Status marks. Reserved: never reused as a series colour. */
   --mark-warning: #fab219;
   --mark-serious: #ec835a;

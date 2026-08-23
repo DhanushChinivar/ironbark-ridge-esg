@@ -21,11 +21,20 @@ const byAction = computed<Segment[]>(() => {
   const t = quality.data.value?.totals;
   if (!t) return [];
   return [
-    { label: 'fixed', value: t.fixed, color: 'var(--ramp-3)' },
-    { label: 'flagged', value: t.flagged, color: 'var(--mark-warning)' },
-    { label: 'rejected', value: t.rejected, color: 'var(--mark-critical)' },
+    { label: 'Corrected automatically', value: t.fixed, color: 'var(--act-fixed)' },
+    { label: 'Flagged for review', value: t.flagged, color: 'var(--act-flagged)' },
+    { label: 'Rejected', value: t.rejected, color: 'var(--act-rejected)' },
   ].filter((s) => s.value > 0);
 });
+
+// What each file is for. Row counts alone do not tell a reader why the file
+// matters, and the answer is not derivable from the data.
+const PURPOSE: Record<string, string> = {
+  'fuel_deliveries.csv': 'Scope 1 emissions',
+  'electricity_meter_readings.csv': 'Scope 2 emissions',
+  'incident_register.csv': 'Safety analysis',
+  'suppliers.csv': 'Supplier attribution',
+};
 
 const dataset = ref<string>('all');
 const datasets = computed(() => [
@@ -78,15 +87,16 @@ function firstRowFor(ruleCode: string): number | null {
     <div class="head">
       <h1 class="sans">Data trust</h1>
       <p class="lede">
-        Every problem found in the source files, what was done about it, and why. Nothing was
-        discarded: the row counts below are enforced by a database constraint, not by convention.
+        Every source row is accounted for. Below is what was found in the four files, what was
+        done about each problem, and why. Nothing was discarded, and the counts are enforced by a
+        database constraint rather than by convention.
       </p>
     </div>
 
     <div class="rings">
       <Panel
         title="Source rows accounted for"
-        note="read = promoted + rejected"
+        note="every row, tracked"
         :loading="quality.loading.value"
         :error="quality.error.value"
       >
@@ -96,7 +106,7 @@ function firstRowFor(ruleCode: string): number | null {
           :value="rowsPromoted"
           :of="rowsRead"
           :centre="`${rowsPromoted} / ${rowsRead}`"
-          caption="accounted for"
+          caption="source rows"
           note="A database constraint enforces this, so no row can go missing unrecorded."
         >
           <ul class="tally">
@@ -108,8 +118,8 @@ function firstRowFor(ruleCode: string): number | null {
       </Panel>
 
       <Panel
-        title="What was done about it"
-        :note="`${quality.data.value?.totals.findings ?? 0} findings`"
+        title="Data quality findings"
+        :note="`${quality.data.value?.totals.findings ?? 0} in total`"
         :loading="quality.loading.value"
         :error="quality.error.value"
       >
@@ -124,7 +134,10 @@ function firstRowFor(ruleCode: string): number | null {
     <Panel title="What was read" :loading="quality.loading.value" :error="quality.error.value">
       <div class="files">
         <div v-for="f in quality.data.value?.files ?? []" :key="f.fileName" class="file">
-          <div class="fname mono">{{ f.fileName }}</div>
+          <div class="fname">
+            <span class="mono">{{ f.fileName }}</span>
+            <span class="purpose">{{ PURPOSE[f.fileName] ?? 'reference data' }}</span>
+          </div>
           <div class="counts mono num">
             <span><b>{{ f.rowsRead }}</b> read</span>
             <span><b>{{ f.rowsPromoted }}</b> promoted</span>
@@ -223,7 +236,7 @@ function firstRowFor(ruleCode: string): number | null {
             <li>Method and provenance</li>
           </ul>
         </div>
-        <RouterLink to="/report" class="cta sans">Open report →</RouterLink>
+        <RouterLink to="/report" class="cta sans">Generate report →</RouterLink>
       </div>
     </Panel>
 
@@ -275,7 +288,9 @@ h1 { margin: 0; font-size: 33px; font-weight: 800; }
   border-top: 1px solid var(--rule);
 }
 .file:first-child { border-top: none; padding-top: 0; }
-.fname { font-size: 13px; }
+.fname { display: flex; flex-direction: column; gap: 2px; }
+.fname .mono { font-size: 13px; }
+.purpose { font-size: 11.5px; color: var(--ink-faint); }
 .counts { display: flex; gap: 18px; font-size: 12px; color: var(--ink-faint); }
 .counts b { color: var(--ink); font-weight: 500; }
 .counts .warn b { color: var(--amber); }
@@ -327,9 +342,15 @@ h1 { margin: 0; font-size: 33px; font-weight: 800; }
   padding: 2px 6px;
   border-radius: 2px;
 }
-.act.fixed { background: color-mix(in srgb, var(--ramp-3) 14%, transparent); color: var(--ramp-2); }
-.act.flagged { background: color-mix(in srgb, var(--amber) 20%, transparent); color: var(--amber); }
-.act.rejected { background: color-mix(in srgb, var(--critical) 15%, transparent); color: var(--critical); }
+/* Colour plus a glyph. Roughly one man in twelve cannot separate these by hue,
+   so the mark has to say it too. */
+.act.fixed { background: color-mix(in srgb, var(--act-fixed) 13%, transparent); color: var(--act-fixed); }
+.act.flagged { background: color-mix(in srgb, var(--act-flagged) 22%, transparent); color: var(--act-flagged-ink); }
+.act.rejected { background: color-mix(in srgb, var(--act-rejected) 14%, transparent); color: var(--act-rejected); }
+.act::before { margin-right: 4px; font-weight: 700; }
+.act.fixed::before { content: '✓'; }
+.act.flagged::before { content: '!'; }
+.act.rejected::before { content: '✕'; }
 
 .inspect { font-size: 12px; padding: 3px 9px; }
 .msg { margin: 0; font-size: 14.5px; }

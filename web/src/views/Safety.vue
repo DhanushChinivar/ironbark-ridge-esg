@@ -6,6 +6,7 @@ import { useAsync } from '../composables/useAsync';
 import Panel from '../components/Panel.vue';
 import Stat from '../components/Stat.vue';
 import DonutChart, { type Segment } from '../components/DonutChart.vue';
+import SafetyTabs from '../components/SafetyTabs.vue';
 
 const summary = useAsync(() => api.incidentSummary());
 const trends = useAsync(() => api.incidentTrends());
@@ -46,7 +47,7 @@ const mix = (counts: Record<string, number>) =>
     .map(([key, n]) => `${key} ×${n}`)
     .join('  ') || 'no incidents';
 
-const severityLabel = (n: number | null) => (n === null ? 'unresolved' : `severity ${n}`);
+const severityLabel = (n: number | null) => (n === null ? 'severity not recorded' : `severity ${n}`);
 
 // One hue, five rungs, darkest first. The register has eight type codes and a
 // ring cannot carry eight colours a reader can still tell apart, so the tail
@@ -67,18 +68,49 @@ const byType = computed<Segment[]>(() => {
     : named;
 });
 
-// Severity is genuinely ordered, so the ramp does its proper job here: darker
-// means more severe. Keyed on the severity itself rather than on position, so
-// the shade means the same thing whether or not every band is present, and
-// stepped by two rungs because neighbouring rungs are too close to read apart.
-const severityColor = (severity: number) =>
-  RAMP[Math.max(RAMP.length - 1 - (severity - 1) * 2, 0)]!;
+// Severity is a risk band, not a rank, so it gets the risk scale rather than a
+// shade of the house blue. Keyed on the severity itself, so a colour means the
+// same thing whether or not every band is present.
+const SEVERITY_COLOR: Record<string, string> = {
+  '1': 'var(--sev-1)',
+  '2': 'var(--sev-2)',
+  '3': 'var(--sev-3)',
+  '4': 'var(--sev-3)',
+  '5': 'var(--sev-3)',
+  unresolved: 'var(--sev-none)',
+};
+const severityColor = (severity: number | null) =>
+  SEVERITY_COLOR[severity === null ? 'unresolved' : String(severity)] ?? 'var(--sev-none)';
+
+// Stacked bars need the same scale as the donut, bottom to top by severity.
+const stack = (counts: Record<string, number>, total: number) =>
+  ['1', '2', '3', '4', '5', 'unresolved']
+    .filter((k) => counts[k])
+    .map((k) => ({
+      key: k,
+      count: counts[k]!,
+      share: total ? (counts[k]! / total) * 100 : 0,
+      color: SEVERITY_COLOR[k] ?? 'var(--sev-none)',
+      label: k === 'unresolved' ? 'not recorded' : `severity ${k}`,
+    }));
+
+const severityKey = computed(() => {
+  const seen = new Set<string>();
+  for (const m of months.value) for (const k of Object.keys(m.bySeverity)) seen.add(k);
+  return ['1', '2', '3', '4', '5', 'unresolved']
+    .filter((k) => seen.has(k))
+    .map((k) => ({
+      key: k,
+      color: SEVERITY_COLOR[k] ?? 'var(--sev-none)',
+      label: k === 'unresolved' ? 'Not recorded' : `Severity ${k}`,
+    }));
+});
 
 const bySeverity = computed<Segment[]>(() =>
   (summary.data.value?.bySeverity ?? []).map((b) => ({
-    label: b.severity === null ? 'unresolved' : `severity ${b.severity}`,
+    label: b.severity === null ? 'Not recorded' : `Severity ${b.severity}`,
     value: b.count,
-    color: b.severity === null ? 'var(--ramp-rest)' : severityColor(b.severity),
+    color: severityColor(b.severity),
   })),
 );
 </script>
@@ -88,10 +120,12 @@ const bySeverity = computed<Segment[]>(() =>
     <div class="head">
       <h1 class="sans">Safety</h1>
       <p class="lede">
-        Forty-two incidents, classified by a model that must quote the description it is reading. A
-        quote that is not found in the source text discards the finding it supports.
+        All {{ ai.data.value?.totals.classified ?? 0 }} incident descriptions were analysed using
+        AI. Every finding is backed by a quote from the original text.
       </p>
     </div>
+
+    <SafetyTabs />
 
     <Panel :loading="loading" :error="error">
       <div class="stats">
@@ -109,9 +143,9 @@ const bySeverity = computed<Segment[]>(() =>
           note="AI-identified · all recorded at severity 1"
         />
         <Stat
-          label="Unresolved severity"
+          label="Severity not recorded"
           :value="String(summary.data.value?.unresolvedSeverity ?? 0)"
-          note="left null, not guessed"
+          note="left blank, not guessed"
         />
       </div>
     </Panel>
@@ -123,6 +157,10 @@ const bySeverity = computed<Segment[]>(() =>
           :centre-value="String(summary.data.value?.total ?? 0)"
           centre-caption="incidents"
         />
+        <p class="caption">
+          The type each incident was filed under by the person who reported it. There is no
+          psychosocial code available to them, which is why those cases appear here as OTH.
+        </p>
       </Panel>
 
       <Panel title="By severity" note="as recorded" :loading="loading" :error="error">
@@ -131,6 +169,10 @@ const bySeverity = computed<Segment[]>(() =>
           :centre-value="String(summary.data.value?.total ?? 0)"
           centre-caption="incidents"
         />
+        <p class="caption">
+          Severity as entered in the register, from 1 (least severe) to 5. One incident has no
+          severity recorded and is shown as such rather than assumed.
+        </p>
       </Panel>
     </div>
 
@@ -149,10 +191,23 @@ const bySeverity = computed<Segment[]>(() =>
             :class="{ dim: hovered !== null && hovered !== i }"
           >
             <span v-if="m.total" class="n mono">{{ m.total }}</span>
+            <span
+              v-for="seg in stack(m.bySeverity, m.total)"
+              :key="seg.key"
+              class="seg"
+              :style="{ height: `${seg.share}%`, background: seg.color }"
+              :title="`${seg.count} at ${seg.label}`"
+            />
           </div>
           <div class="lbl mono">{{ m.month.slice(5) }}</div>
         </div>
       </div>
+
+      <ul class="key">
+        <li v-for="k in severityKey" :key="k.key">
+          <span class="swatch" :style="{ background: k.color }" />{{ k.label }}
+        </li>
+      </ul>
 
       <div class="readout mono" :class="{ dim: !active }">
         <template v-if="active">
@@ -166,21 +221,21 @@ const bySeverity = computed<Segment[]>(() =>
 
     <Panel title="AI findings" note="AI analysis · criteria-guided" :loading="loading" :error="error">
       <p class="lede-sm">
-        AI-assisted findings, each grounded in a quote from the original incident description.
-        <!-- Model and prompt belong in the record, not in the headline. -->
-        <span class="provenance mono" :title="`model ${ai.data.value?.model ?? '—'}, prompt ${ai.data.value?.promptVersion ?? '—'}`">
-          {{ ai.data.value?.model ?? '—' }} · {{ ai.data.value?.promptVersion ?? '—' }}
-        </span>
+        Each finding below is grounded in a quote taken word for word from the incident
+        description. A quote that cannot be found in the source text is discarded along with the
+        finding it supports.
       </p>
 
       <div class="filters">
         <button :aria-pressed="filter === 'psychosocial'" @click="filter = 'psychosocial'">
-          Psychosocial hazards
+          Psychosocial hazards ({{ ai.data.value?.totals.psychosocial ?? 0 }})
         </button>
         <button :aria-pressed="filter === 'severity'" @click="filter = 'severity'">
-          Severity concerns
+          Severity concerns ({{ ai.data.value?.totals.severityInconsistent ?? 0 }})
         </button>
-        <button :aria-pressed="filter === 'all'" @click="filter = 'all'">All 42</button>
+        <button :aria-pressed="filter === 'all'" @click="filter = 'all'">
+          All incidents ({{ ai.data.value?.totals.classified ?? 0 }})
+        </button>
       </div>
 
       <ul class="findings">
@@ -202,14 +257,17 @@ const bySeverity = computed<Segment[]>(() =>
           <p class="desc">{{ f.description }}</p>
 
           <div class="quote">
-            <span class="eyebrow">Evidence</span>
+            <span class="eyebrow strong">Evidence from the incident report</span>
             <q>{{ f.categoryEvidenceQuote }}</q>
           </div>
 
-          <p class="reason">{{ f.categoryReasoning }}</p>
-          <p v-if="f.severityInconsistent && f.severityReasoning" class="reason sev">
-            {{ f.severityReasoning }}
-          </p>
+          <div class="why">
+            <span class="eyebrow strong">Why this was flagged</span>
+            <p class="reason">{{ f.categoryReasoning }}</p>
+            <p v-if="f.severityInconsistent && f.severityReasoning" class="reason sev">
+              {{ f.severityReasoning }}
+            </p>
+          </div>
         </li>
       </ul>
     </Panel>
@@ -218,6 +276,14 @@ const bySeverity = computed<Segment[]>(() =>
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 30px; }
+.caption {
+  margin: 16px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+
 .rings { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 30px; }
 .head { display: flex; flex-direction: column; gap: 8px; }
 h1 { margin: 0; font-size: 33px; font-weight: 800; }
@@ -230,12 +296,17 @@ h1 { margin: 0; font-size: 33px; font-weight: 800; }
 .bar {
   width: 100%;
   max-width: 30px;
-  background: var(--ramp-3);
   margin-top: auto;
   position: relative;
   min-height: 3px;
   border-radius: 4px 4px 0 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column-reverse;
 }
+/* Least severe at the base, so the coloured part that grows upward is the part
+   that matters. */
+.seg { display: block; width: 100%; }
 .n { position: absolute; top: -16px; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--ink-faint); }
 .bar.dim { opacity: 0.35; }
 .lbl { font-size: 9.5px; color: var(--ink-faint); padding-top: 6px; }
@@ -260,7 +331,10 @@ h1 { margin: 0; font-size: 33px; font-weight: 800; }
 }
 
 .lede-sm { margin: 0 0 16px; font-size: 13.5px; color: var(--ink-soft); max-width: 72ch; }
-.provenance { font-size: 11px; color: var(--ink-faint); white-space: nowrap; }
+
+.key { list-style: none; display: flex; gap: 16px; flex-wrap: wrap; margin: 14px 0 0; padding: 0; }
+.key li { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--ink-faint); }
+.key .swatch { width: 9px; height: 9px; border-radius: 2px; }
 
 .filters { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; }
 .conf { color: var(--ink-faint); }
@@ -286,8 +360,20 @@ h1 { margin: 0; font-size: 33px; font-weight: 800; }
 
 .desc { margin: 0; font-size: 15px; max-width: 78ch; }
 
-.quote { display: flex; gap: 10px; align-items: baseline; padding: 8px 12px; background: var(--paper); border-left: 2px solid var(--slate); }
+.eyebrow.strong { font-weight: 700; color: var(--ink-soft); }
+
+.quote {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 9px 14px;
+  background: var(--paper);
+  border-left: 2px solid var(--slate);
+  border-radius: 0 8px 8px 0;
+}
 .quote q { font-size: 14px; color: var(--ink-soft); font-style: italic; }
+
+.why { display: flex; flex-direction: column; gap: 5px; }
 
 .reason { margin: 0; font-size: 13.5px; color: var(--ink-faint); max-width: 78ch; }
 .reason.sev { color: var(--amber); }

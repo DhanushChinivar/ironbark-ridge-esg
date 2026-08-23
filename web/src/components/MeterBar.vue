@@ -50,7 +50,7 @@ const shown = computed(() => props.bands.filter((b) => b.value > 0));
 <style scoped>
 .meter { display: flex; flex-direction: column; }
 
-.headline { font-size: 12.5px; color: var(--ink-faint); }
+.headline { font-size: 12.5px; color: var(--ink-soft); line-height: 1.5; max-width: 32ch; }
 .pct { font-size: 31px; font-weight: 800; letter-spacing: -0.035em; line-height: 1.15; }
 
 .track {

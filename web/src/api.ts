@@ -1,5 +1,6 @@
 import {
   aiFindingsSchema,
+  aiTraceSchema,
   dataQualityReportSchema,
   emissionsCalculationSchema,
   evidenceSchema,
@@ -27,4 +28,6 @@ export const api = {
   dataQuality: () => get('/api/data-quality', dataQualityReportSchema),
   aiFindings: () => get('/api/ai/findings', aiFindingsSchema),
   evidence: (sourceRowId: number) => get(`/api/evidence/${sourceRowId}`, evidenceSchema),
+  aiTrace: (incidentId: number | null) =>
+    get(`/api/ai/trace${incidentId === null ? '' : `?incident=${incidentId}`}`, aiTraceSchema),
 };

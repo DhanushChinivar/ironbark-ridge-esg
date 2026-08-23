@@ -96,6 +96,7 @@ loaded by `seed` and does not appear in the ingest report.
 | `GET /api/emissions/calculation` | The rows behind one month: quantity, factor and result per line, with the aggregate beside the hand total so the two can be compared |
 | `GET /api/incidents/summary` | Counts by severity, type and site |
 | `GET /api/incidents/trends` | Monthly incident counts, banded by severity |
+| `GET /api/ai/trace` | How one classification was reached: the instruction sent, the record given, the structured answer, and the groundedness check re-run against the stored description |
 | `GET /api/data-quality` | Every finding, per-rule counts, and per-file row counters |
 | `GET /api/evidence/:sourceRowId` | A source row exactly as it arrived, with every finding raised against it |
 | `GET /api/health` | Liveness |

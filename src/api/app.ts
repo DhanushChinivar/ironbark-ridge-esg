@@ -8,6 +8,7 @@ import {
   dataQualityReportSchema,
   emissionsCalculationSchema,
   aiFindingsSchema,
+  aiTraceSchema,
   evidenceSchema,
   incidentSummarySchema,
   incidentTrendSchema,
@@ -18,6 +19,7 @@ import { emissionsCalculation } from '../domain/calculation.js';
 import { incidentSummary, incidentTrend } from '../domain/incidents.js';
 import { dataQualityReport, evidenceForRow } from '../domain/dataQuality.js';
 import { aiFindings } from '../domain/ai.js';
+import { aiTrace } from '../domain/aiTrace.js';
 
 const api = express.Router();
 
@@ -68,6 +70,28 @@ api.get('/incidents/trends', async (_req, res) => {
 
 api.get('/ai/findings', async (_req, res) => {
   res.json(aiFindingsSchema.parse(await aiFindings(db)));
+});
+
+// How one classification was reached. Omit the id to open on the first finding.
+api.get('/ai/trace', async (req, res) => {
+  const raw = req.query.incident;
+  let incidentId: number | null = null;
+
+  if (raw !== undefined) {
+    incidentId = Number(raw);
+    if (!Number.isInteger(incidentId) || incidentId < 1) {
+      res.status(400).json({ error: 'incident must be an integer' });
+      return;
+    }
+  }
+
+  const trace = await aiTrace(db, incidentId);
+  if (!trace) {
+    res.status(404).json({ error: 'No classification for that incident' });
+    return;
+  }
+
+  res.json(aiTraceSchema.parse(trace));
 });
 
 api.get('/data-quality', async (_req, res) => {

@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { RouterLink, useRoute } from 'vue-router';
 
-// Sub-navigation within Emissions. Two views of one subject: the charted
-// figures, and the rows those figures were summed from.
 const route = useRoute();
 const tabs = [
-  { to: '/emissions', label: 'Figures' },
-  { to: '/emissions/calculation', label: 'How this value was calculated' },
+  { to: '/safety', label: 'Findings' },
+  { to: '/safety/method', label: 'How this finding was generated' },
 ];
 </script>
 

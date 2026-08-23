@@ -7,6 +7,7 @@ import Safety from './views/Safety.vue';
 import DataTrust from './views/DataTrust.vue';
 import Report from './views/Report.vue';
 import Calculation from './views/Calculation.vue';
+import AiMethod from './views/AiMethod.vue';
 import './theme.css';
 
 const router = createRouter({
@@ -16,6 +17,7 @@ const router = createRouter({
     { path: '/emissions', component: Emissions, name: 'Emissions' },
     { path: '/emissions/calculation', component: Calculation, name: 'Calculation' },
     { path: '/safety', component: Safety, name: 'Safety' },
+    { path: '/safety/method', component: AiMethod, name: 'AI method' },
     { path: '/data-trust', component: DataTrust, name: 'Data trust' },
     { path: '/report', component: Report, name: 'Report' },
   ],

@@ -175,6 +175,42 @@ export const aiFindingsSchema = z.object({
   findings: z.array(aiFindingSchema),
 });
 
+// One classification, taken apart: what the model was told, what it was given,
+// what it returned, and the check that decided whether to keep it.
+export const aiTraceSchema = z.object({
+  model: z.string(),
+  promptVersion: z.string(),
+  systemPrompt: z.string(),
+  userMessage: z.string(),
+  outputFields: z.array(z.string()),
+  incident: z.object({
+    incidentId: z.number().int(),
+    sourceIncidentId: z.string(),
+    incidentDate: z.string(),
+    description: z.string(),
+    typeCode: z.string().nullable(),
+    severityRaw: z.string(),
+    recordedSeverity: z.number().int().nullable(),
+  }),
+  assessment: z.object({
+    category: z.string(),
+    isPsychosocial: z.boolean(),
+    confidence: z.number().nullable(),
+    reasoning: z.string(),
+    severityInconsistent: z.boolean(),
+    suggestedSeverity: z.number().int().nullable(),
+    severityReasoning: z.string().nullable(),
+  }),
+  // The check that decides whether a finding is kept. offset is where the quote
+  // starts in the description, so the page can show it in place.
+  grounding: z.object({
+    quote: z.string(),
+    found: z.boolean(),
+    offset: z.number().int(),
+  }),
+  choices: z.array(z.object({ incidentId: z.number().int(), label: z.string() })),
+});
+
 export const evidenceSchema = z.object({
   sourceRowId: z.number().int(),
   fileName: z.string(),
@@ -191,5 +227,6 @@ export type IncidentSummary = z.infer<typeof incidentSummarySchema>;
 export type IncidentTrend = z.infer<typeof incidentTrendSchema>;
 export type DataQualityReport = z.infer<typeof dataQualityReportSchema>;
 export type Evidence = z.infer<typeof evidenceSchema>;
+export type AiTrace = z.infer<typeof aiTraceSchema>;
 export type AiFindings = z.infer<typeof aiFindingsSchema>;
 export type AiFinding = z.infer<typeof aiFindingSchema>;

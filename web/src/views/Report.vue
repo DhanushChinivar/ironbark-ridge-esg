@@ -27,6 +27,15 @@ const generatedAt = ref(
 
 const t = (n: number) => n.toLocaleString('en-AU', { maximumFractionDigits: 0 });
 
+// What each source file feeds, mirroring the dashboard. Row counts alone do not
+// tell a reader why a file matters.
+const PURPOSE: Record<string, string> = {
+  'fuel_deliveries.csv': 'Scope 1 emissions',
+  'electricity_meter_readings.csv': 'Scope 2 emissions',
+  'incident_register.csv': 'Safety analysis',
+  'suppliers.csv': 'Supplier attribution',
+};
+
 const psychosocial = computed(() => (ai.data.value?.findings ?? []).filter((f) => f.isPsychosocial));
 const severityConcerns = computed(() =>
   (ai.data.value?.findings ?? []).filter((f) => f.severityInconsistent),
@@ -54,7 +63,7 @@ function printReport() {
       <div class="actions">
         <span class="hint">Choose “Save as PDF” as the destination</span>
         <button class="primary" :disabled="loading || !!error" @click="printReport">
-          Save as PDF
+          Generate PDF report
         </button>
       </div>
     </div>
@@ -108,11 +117,12 @@ function printReport() {
         </table>
 
         <p class="callout">
-          Scope 2 is reported <b>{{ t(emissions.data.value?.correction.differenceTco2e ?? 0) }} t
-          CO₂e higher</b> than the source files state. Meter MTR-07 began reporting in
-          megawatt-hours from October 2025 while still labelled kWh and had not recovered by the
-          last available reading. Both the as-reported and corrected values are stored against every
-          reading; §4 sets out the rule that made the change.
+          From October 2025, one electricity meter (MTR-07) started reporting in the wrong unit. It
+          was recording megawatt-hours but still labelled kWh, and it had not recovered by the last
+          available reading. We corrected it, which is why Scope 2 is reported
+          <b>{{ t(emissions.data.value?.correction.differenceTco2e ?? 0) }} t CO₂e higher</b> than
+          the source files state. We keep both values on every reading, so the difference stays
+          visible; §4 sets out the rule that made the change.
         </p>
       </section>
 
@@ -161,8 +171,8 @@ function printReport() {
         <h2>3 &nbsp;Safety</h2>
         <p>
           {{ incidents.data.value?.total ?? 0 }} incidents were recorded across the period.
-          {{ incidents.data.value?.unresolvedSeverity ?? 0 }} carries a severity that could not be
-          resolved to a number and has been left unset rather than assumed.
+          {{ incidents.data.value?.unresolvedSeverity ?? 0 }} has no severity recorded. It has been
+          left blank rather than assumed.
         </p>
 
         <h3>3.1 &nbsp;Psychosocial hazards</h3>
@@ -176,7 +186,7 @@ function printReport() {
           <li v-for="f in psychosocial" :key="f.incidentId">
             <div class="fhead mono">
               {{ f.sourceIncidentId }} · {{ f.incidentDate }} · coded {{ f.typeCode ?? '—' }} ·
-              severity {{ f.recordedSeverity ?? 'unresolved' }}
+              severity {{ f.recordedSeverity ?? 'not recorded' }}
             </div>
             <p class="desc">{{ f.description }}</p>
             <p class="quote">“{{ f.categoryEvidenceQuote }}”</p>
@@ -193,7 +203,7 @@ function printReport() {
           <li v-for="f in severityConcerns" :key="f.incidentId">
             <div class="fhead mono">
               {{ f.sourceIncidentId }} · {{ f.incidentDate }} · recorded
-              {{ f.recordedSeverity ?? 'unresolved' }} · suggested {{ f.suggestedSeverity ?? '—' }}
+              {{ f.recordedSeverity ?? 'not recorded' }} · suggested {{ f.suggestedSeverity ?? '—' }}
             </div>
             <p class="desc">{{ f.description }}</p>
             <p class="quote">“{{ f.severityEvidenceQuote }}”</p>
@@ -214,6 +224,7 @@ function printReport() {
           <thead>
             <tr>
               <th>Source file</th>
+              <th>Feeds</th>
               <th class="n">Read</th>
               <th class="n">Promoted</th>
               <th class="n">Flagged</th>
@@ -224,6 +235,7 @@ function printReport() {
           <tbody>
             <tr v-for="f in quality.data.value?.files ?? []" :key="f.fileName">
               <td class="mono">{{ f.fileName }}</td>
+              <td class="src">{{ PURPOSE[f.fileName] ?? 'reference data' }}</td>
               <td class="n">{{ f.rowsRead }}</td>
               <td class="n">{{ f.rowsPromoted }}</td>
               <td class="n">{{ f.rowsFlagged }}</td>
@@ -297,6 +309,25 @@ function printReport() {
             <dd>
               Each of the {{ quality.data.value?.totals.findings ?? 0 }} findings in §4 points at the
               source row that raised it, and each row is retained verbatim as it was read.
+            </dd>
+          </div>
+          <!-- Both claims are demonstrable in the application, not only asserted
+               here, so the report says where to go and check. -->
+          <div>
+            <dt>Reconciliation</dt>
+            <dd>
+              The monthly figures in §2 are aggregates. Every one can be opened line by line in the
+              dashboard, under Emissions, where the individual deliveries and meter readings are
+              listed with the factor applied to each, and the hand total is shown beside the
+              reported figure for comparison.
+            </dd>
+          </div>
+          <div>
+            <dt>Verification</dt>
+            <dd>
+              The grounding check described above can be re-run for any finding in §3, under
+              Safety, where the instruction sent to the model, the record it was given, and the
+              quote located in the original description are all shown.
             </dd>
           </div>
         </dl>

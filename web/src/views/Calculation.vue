@@ -58,7 +58,7 @@ const monthLabel = (m: string) =>
   <div class="page">
     <div class="head">
       <div>
-        <h1 class="sans">How it is calculated</h1>
+        <h1 class="sans">How this value was calculated</h1>
         <p class="lede">
           The rows behind one month, on the corrected basis the dashboard reports. Every line
           shows what the file said, what was used, the factor applied to it, and the result.

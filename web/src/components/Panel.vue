@@ -1,11 +1,21 @@
 <script setup lang="ts">
-defineProps<{ title?: string; note?: string; loading?: boolean; error?: string | null }>();
+defineProps<{
+  title?: string;
+  note?: string;
+  loading?: boolean;
+  error?: string | null;
+  /** Renders a numbered marker before the title, for pages that read as steps. */
+  step?: number;
+}>();
 </script>
 
 <template>
   <section class="panel">
     <header v-if="title">
-      <h2 class="sans">{{ title }}</h2>
+      <h2 class="sans">
+        <span v-if="step" class="step mono" aria-hidden="true">{{ step }}</span>
+        {{ title }}
+      </h2>
       <span v-if="note" class="eyebrow">{{ note }}</span>
     </header>
     <p v-if="loading" class="state">Loading…</p>
@@ -27,7 +37,20 @@ header {
   margin-bottom: 18px;
 }
 header h2 { flex: 0 0 auto; }
-h2 { margin: 0; font-size: 14.5px; font-weight: 700; }
+h2 { margin: 0; font-size: 14.5px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+
+/* A place for the eye to land on a page of otherwise identical cards. */
+.step {
+  flex: 0 0 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--track);
+  color: var(--ramp-2);
+  font-size: 11px;
+  font-weight: 700;
+}
 .state { margin: 0; color: var(--ink-faint); font-size: 14px; }
 .err { color: var(--critical); }
 </style>

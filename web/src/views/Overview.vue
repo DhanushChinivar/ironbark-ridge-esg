@@ -279,7 +279,7 @@ const bySource = computed(() =>
         />
       </Panel>
 
-      <Panel title="How each was found" note="rule, calculation or model" :loading="loading" :error="error">
+      <Panel title="How findings were identified" note="rule, calculation or model" :loading="loading" :error="error">
         <DonutChart
           :segments="bySource"
           :centre-value="String(attention.filter((i) => i.source === 'ai').length)"
@@ -289,12 +289,10 @@ const bySource = computed(() =>
 
       <Panel title="Reporting coverage" note="months with both sources" :loading="loading" :error="error">
         <MeterBar
-          headline="Months reported in full"
+          :headline="`${coverage.complete} of ${coverage.total} months have both fuel and electricity data`"
           :value="coverage.complete"
           :of="coverage.total"
           :bands="coverage.bands"
-          :foot-left="`${coverage.complete} months`"
-          :foot-right="`${coverage.total} in the period`"
         />
       </Panel>
     </div>
