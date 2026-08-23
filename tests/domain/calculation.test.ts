@@ -60,6 +60,23 @@ describe('emissionsCalculation', () => {
     expect(fuel.subtotalKgCo2e).toBeCloseTo(countedKg, 0);
   });
 
+  it('labels the negative line rather than leaving a bare minus in the column', async () => {
+    const calc = await emissionsCalculation(db, '2025-08', 'corrected');
+    const fuel = calc.scopes.find((s) => s.scope === 1)!;
+
+    const adjusted = fuel.lines.filter((l) => l.note !== null);
+    expect(adjusted).toHaveLength(1);
+    expect(adjusted[0]!.reference).toBe('INV-41777');
+    // The label describes the shape of the row, not a conclusion about it.
+    expect(adjusted[0]!.note).toMatch(/negative adjustment/);
+    expect(adjusted[0]!.note).not.toMatch(/credit note/);
+
+    // It is labelled, not excluded: the negative still lands in the subtotal.
+    expect(adjusted[0]!.kgCo2e).toBeLessThan(0);
+    expect(adjusted[0]!.excludedBecause).toBeNull();
+    expect(fuel.countedLines).toBe(fuel.lines.filter((l) => !l.excludedBecause).length);
+  });
+
   it('states every line in the units its factor is quoted in', async () => {
     const calc = await emissionsCalculation(db, '2026-03', 'corrected');
     for (const scope of calc.scopes) {

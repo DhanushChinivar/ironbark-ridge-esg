@@ -6,6 +6,11 @@ import { useAsync } from './composables/useAsync';
 
 const route = useRoute();
 
+// A sub-page belongs to its section: /emissions/calculation should leave
+// Emissions lit rather than lighting nothing at all. Overview is the exception,
+// since every path starts with a slash.
+const active = (to: string) => (to === '/' ? route.path === '/' : route.path.startsWith(to));
+
 // Each section gets a glyph as well as a word. At sidebar width the label is
 // what identifies it; the glyph is what you find again without reading.
 const nav = [
@@ -50,7 +55,7 @@ const rejected = computed(() =>
           :key="item.to"
           :to="item.to"
           class="sans"
-          :class="{ on: route.path === item.to }"
+          :class="{ on: active(item.to) }"
         >
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
             <template v-if="item.icon === 'grid'">

@@ -92,15 +92,17 @@ const rules = [
       'kept with a link to the row it repeats.',
   },
   {
-    code: 'FUEL_CREDIT_NOTE',
+    code: 'FUEL_NEGATIVE_ACTIVITY',
     dataset: 'fuel_deliveries',
     action: 'flagged',
     severity: 'warning',
-    message: 'Delivery has a negative quantity and cost.',
+    message: 'Delivery recorded with a negative quantity and a negative cost.',
     rationale:
-      'INV-41777 records −12,500 L and −$23,375 with an invoice number outside the surrounding ' +
-      'sequence: a credit note reversing an over-delivery. Rejecting it as invalid would ' +
-      'overstate Scope 1 by 12,500 litres of diesel.',
+      'INV-41777 records −12,500 L and −$23,375, at $1.87 per litre, with an invoice number ' +
+      'outside the surrounding sequence. Both figures being negative and consistent is the ' +
+      'pattern of a reversal rather than a mis-keyed sign, but the file never says so. The row ' +
+      'is retained as recorded and flagged for review; rejecting it would overstate Scope 1 by ' +
+      '12,500 litres of diesel, and flipping the sign would understate it by the same amount.',
   },
   {
     code: 'FUEL_PRICE_OUTLIER',
@@ -213,6 +215,18 @@ const rules = [
       'Blackwood appears twice, once with "Maintanence" misspelled, under the identical ABN ' +
       '84 112 334 908. A shared ABN is proof of a single entity, so the rows are merged with ' +
       'the match recorded as ABN-based.',
+  },
+  {
+    code: 'SUP_MERGE_FIELD_CONFLICT',
+    dataset: 'suppliers',
+    action: 'flagged',
+    severity: 'info',
+    message: 'Merged rows disagreed on a field, and one value was discarded.',
+    rationale:
+      'Ironline is categorised as "Fuel supply" on one row and "Fuel" on the other. The merge ' +
+      'keeps the canonical value, so the other is reported rather than lost silently. Here the ' +
+      'two mean the same thing, but a merge is exactly where a category could change without ' +
+      'anyone noticing.',
   },
   {
     code: 'SUP_DUPLICATE_NAME',

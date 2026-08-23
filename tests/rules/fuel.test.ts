@@ -112,20 +112,40 @@ describe('applyFuelRules', () => {
     expect(findings.map((f) => f.ruleCode)).toContain('FUEL_UNIT_SPELLING');
   });
 
-  it('keeps a credit note rather than rejecting it as invalid', () => {
+  it('keeps a negative delivery rather than rejecting it as invalid', () => {
     const { deliveries, findings } = applyFuelRules([
       row(1, 'h1', 'INV-41777', '11/02/2026', '-12500', 'L', '-23375.00'),
     ]);
-    expect(deliveries[0]?.isCreditNote).toBe(true);
+    expect(deliveries[0]?.isNegativeAdjustment).toBe(true);
     expect(deliveries[0]?.quantityLitres).toBe('-12500');
-    expect(findings.find((f) => f.ruleCode === 'FUEL_CREDIT_NOTE')?.detail).toMatchObject({
+    expect(findings.find((f) => f.ruleCode === 'FUEL_NEGATIVE_ACTIVITY')?.detail).toMatchObject({
       costAndQuantityAgree: true,
     });
   });
 
-  it('does not treat a positive delivery as a credit note', () => {
+  it('does not mark a positive delivery as an adjustment', () => {
     const { deliveries } = applyFuelRules([row(1, 'h1', 'INV-1', '2025-04-01', '1000', 'L', '1850.00')]);
-    expect(deliveries[0]?.isCreditNote).toBe(false);
+    expect(deliveries[0]?.isNegativeAdjustment).toBe(false);
+  });
+
+  // Date and cost parsing are covered above as functions. These name the rule
+  // codes as well, so the catalogue and the tests cannot drift apart.
+  it('raises a finding for each date and cost format it corrects', () => {
+    const { findings } = applyFuelRules([
+      row(1, 'h1', 'INV-1', '14/08/2025', '1000', 'L', '$1,850.00'),
+    ]);
+    const codes = findings.map((f) => f.ruleCode);
+    expect(codes).toContain('FUEL_DATE_FORMAT');
+    expect(codes).toContain('FUEL_COST_FORMAT');
+  });
+
+  it('flags a month-only date rather than inventing a day for it', () => {
+    const { deliveries, findings } = applyFuelRules([
+      row(1, 'h1', 'INV-1', 'Oct-25', '1000', 'L', '1850.00'),
+    ]);
+    expect(findings.map((f) => f.ruleCode)).toContain('FUEL_DATE_MONTH_ONLY');
+    expect(deliveries[0]?.datePrecision).toBe('month');
+    expect(deliveries[0]?.deliveryDate).toBe('2025-10-01');
   });
 
   it('marks the later copy of an identical row and keeps the first', () => {
@@ -177,7 +197,7 @@ describe('applyFuelRules', () => {
     expect(findings.find((f) => f.ruleCode === 'FUEL_PRICE_OUTLIER')?.sourceRowNumber).toBe(4);
   });
 
-  it('does not flag the credit note as a price outlier', () => {
+  it('does not flag the negative delivery as a price outlier', () => {
     // Its quantity and cost are both negative, so the implied price is normal.
     const normal = (n: number) =>
       row(n, `h${n}`, `INV-${n}`, '2025-04-01', '12500', 'L', '23375.00');

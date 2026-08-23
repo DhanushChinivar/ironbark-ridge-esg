@@ -3,7 +3,12 @@ import { computed, ref, watch } from 'vue';
 import type { AiTrace } from '@contracts';
 import { api } from '../api';
 import Panel from '../components/Panel.vue';
-import SafetyTabs from '../components/SafetyTabs.vue';
+import SubTabs from '../components/SubTabs.vue';
+
+const tabs = [
+  { to: '/safety', label: 'Findings' },
+  { to: '/safety/method', label: 'How this finding was generated' },
+];
 
 // The Findings tab shows what the model concluded. This shows how it got there,
 // for one incident at a time, using the same records the enrichment job used.
@@ -57,7 +62,7 @@ const readable = (field: string) =>
       </p>
     </div>
 
-    <SafetyTabs />
+    <SubTabs :tabs="tabs" />
 
     <Panel title="Pick an incident" :note="`${data?.choices.length ?? 0} classified`" :loading="loading" :error="error">
       <select v-if="data" v-model="chosen" class="picker" aria-label="Incident">

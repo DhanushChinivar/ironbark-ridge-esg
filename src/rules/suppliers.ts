@@ -105,6 +105,35 @@ export function applySupplierRules(rows: RawSupplierRow[]): SupplierRuleResult {
   return { suppliers, findings };
 }
 
+// A merge keeps the canonical row's fields. Where the two rows disagreed about
+// one, the discarded value is worth stating: "Fuel" and "Fuel supply" mean the
+// same thing here, but the merge is the moment a category could quietly change,
+// and a reader should be told rather than left to diff the file.
+function flagFieldConflicts(
+  canonical: CleanSupplier,
+  dup: CleanSupplier,
+  evidence: 'abn' | 'name',
+  findings: Finding[],
+): void {
+  if (!canonical.categoryNormalised || !dup.categoryNormalised) return;
+  if (canonical.categoryNormalised === dup.categoryNormalised) return;
+
+  findings.push(
+    finding('SUP_MERGE_FIELD_CONFLICT', dup.rowNumber, {
+      field: 'category',
+      originalValue: dup.categoryRaw ?? '',
+      correctedValue: canonical.categoryRaw ?? '',
+      detail: {
+        mergedIntoRowNumber: canonical.rowNumber,
+        evidence,
+        field: 'category',
+        kept: canonical.categoryRaw,
+        discarded: dup.categoryRaw,
+      },
+    }),
+  );
+}
+
 // Strongest evidence first. A shared ABN is proof, a shared name is a guess, so
 // the name pass runs second and never overwrites an ABN match.
 function resolveDuplicates(suppliers: CleanSupplier[], findings: Finding[]): void {
@@ -134,6 +163,7 @@ function resolveDuplicates(suppliers: CleanSupplier[], findings: Finding[]): voi
           },
         }),
       );
+      flagFieldConflicts(canonical, dup, 'abn', findings);
     }
   }
 
@@ -167,6 +197,7 @@ function resolveDuplicates(suppliers: CleanSupplier[], findings: Finding[]): voi
           },
         }),
       );
+      flagFieldConflicts(canonical, dup, 'name', findings);
     }
   }
 }

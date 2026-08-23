@@ -12,13 +12,23 @@ const emissions = useAsync(() => api.emissions('corrected'));
 const incidents = useAsync(() => api.incidentSummary());
 const quality = useAsync(() => api.dataQuality());
 const ai = useAsync(() => api.aiFindings());
+const suppliers = useAsync(() => api.suppliers());
 
 const loading = computed(
   () =>
-    emissions.loading.value || incidents.loading.value || quality.loading.value || ai.loading.value,
+    emissions.loading.value ||
+    incidents.loading.value ||
+    quality.loading.value ||
+    ai.loading.value ||
+    suppliers.loading.value,
 );
 const error = computed(
-  () => emissions.error.value ?? incidents.error.value ?? quality.error.value ?? ai.error.value,
+  () =>
+    emissions.error.value ??
+    incidents.error.value ??
+    quality.error.value ??
+    ai.error.value ??
+    suppliers.error.value,
 );
 
 const generatedAt = ref(
@@ -35,6 +45,18 @@ const PURPOSE: Record<string, string> = {
   'incident_register.csv': 'Safety analysis',
   'suppliers.csv': 'Supplier attribution',
 };
+
+// Merges are the only place in this report where two source rows become one
+// record, so the evidence behind each is stated rather than summarised.
+const merges = computed(() =>
+  (suppliers.data.value?.companies ?? [])
+    .filter((c) => c.mergedFrom.length > 0)
+    .flatMap((c) => c.mergedFrom.map((m) => ({ kept: c, absorbed: m }))),
+);
+const inferredSpend = computed(() =>
+  merges.value.filter((x) => !x.absorbed.proven).reduce((a, x) => a + (x.absorbed.spendAud ?? 0), 0),
+);
+const millions = (n: number) => `$${(n / 1_000_000).toFixed(2)}M`;
 
 const psychosocial = computed(() => (ai.data.value?.findings ?? []).filter((f) => f.isPsychosocial));
 const severityConcerns = computed(() =>
@@ -229,7 +251,6 @@ function printReport() {
               <th class="n">Promoted</th>
               <th class="n">Flagged</th>
               <th class="n">Rejected</th>
-              <th>SHA-256</th>
             </tr>
           </thead>
           <tbody>
@@ -240,7 +261,6 @@ function printReport() {
               <td class="n">{{ f.rowsPromoted }}</td>
               <td class="n">{{ f.rowsFlagged }}</td>
               <td class="n">{{ f.rowsRejected }}</td>
-              <td class="mono hash">{{ f.contentHash.slice(0, 16) }}…</td>
             </tr>
           </tbody>
         </table>
@@ -276,6 +296,54 @@ function printReport() {
             </tr>
           </tbody>
         </table>
+
+        <h3>4.3 &nbsp;Supplier records</h3>
+        <p>
+          The supplier file is the one dataset where two source rows describe a single real-world
+          entity. {{ suppliers.data.value?.rowsRead ?? 0 }} rows resolve to
+          {{ suppliers.data.value?.totals.companies ?? 0 }} companies. Both merges are recorded with
+          the evidence they rest on, because a shared ABN identifies a registered business while a
+          matching name only suggests one, and the two should not be presented as the same claim.
+        </p>
+        <table class="grid">
+          <thead>
+            <tr>
+              <th>Kept</th>
+              <th>Absorbed</th>
+              <th>Matched on</th>
+              <th class="n">Spend moved</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="m in merges" :key="m.absorbed.sourceRowNumber">
+              <td>
+                {{ m.kept.name }}
+                <span class="src">suppliers.csv:{{ m.kept.sourceRowNumber }}</span>
+              </td>
+              <td>
+                {{ m.absorbed.name }}
+                <span class="src">suppliers.csv:{{ m.absorbed.sourceRowNumber }}</span>
+              </td>
+              <td>
+                {{ m.absorbed.proven ? 'ABN — proven' : 'name only — inferred' }}
+                <span v-if="m.absorbed.discardedCategory" class="src">
+                  categorised as “{{ m.absorbed.discardedCategory }}” on the absorbed row
+                </span>
+              </td>
+              <td class="n">
+                {{ m.absorbed.spendAud === null ? '—' : millions(m.absorbed.spendAud) }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p v-if="inferredSpend > 0" class="note">
+          Spend is reported against the merged company, so the inferred match moves
+          {{ millions(inferredSpend) }} onto a business it was not proven to belong to. Both rows
+          remain in the database with the match method against them, so that decision can be
+          reversed without reloading the file. Supplier spend feeds neither emissions scope: the
+          delivery records carry no supplier, and purchased goods would fall under Scope 3, which
+          is outside this report.
+        </p>
       </section>
 
       <section class="break">
@@ -442,7 +510,9 @@ section p { margin: 0 0 10px; max-width: 74ch; }
 .grid tfoot td { font-weight: 800; border-top: 1.5px solid #111; border-bottom: none; }
 .grid .n, .grid th.n { text-align: right; font-variant-numeric: tabular-nums; padding-right: 14px; }
 .grid .src { color: #666; font-size: 10.5px; }
-.hash { color: #777; font-size: 9.5px; }
+/* Inside a cell the source reference is a second line under the name, not a
+   trailing fragment of it. */
+.grid td .src { display: block; margin-top: 2px; }
 
 .findings { margin: 0; padding-left: 18px; }
 .findings li { margin-bottom: 15px; break-inside: avoid; }

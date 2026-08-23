@@ -152,13 +152,29 @@ const attention = computed<Item[]>(() => {
     });
   }
 
+  // Raised on its own rather than inside the catch-all: a merge made on a name
+  // is the one decision here a reader might want to overturn.
+  const nameMerge = q.findings.find((f) => f.ruleCode === 'SUP_DUPLICATE_NAME');
+  if (nameMerge) {
+    items.push({
+      priority: 'low',
+      source: 'data quality',
+      headline: 'A supplier merge rests on a matching name, not a matching ABN',
+      detail:
+        'Two Ironline rows were combined, but the second carries no ABN, so the match is an ' +
+        'inference rather than a proven identity. It changes who spend is attributed to, not ' +
+        'either emissions figure.',
+      to: '/data-trust/suppliers',
+    });
+  }
+
   const flagged = q.totals.flagged;
   if (flagged) {
     items.push({
       priority: 'low',
       source: 'data quality',
       headline: `${flagged} rows loaded with a recorded concern`,
-      detail: `Seven duplicate invoices, one credit note, two supplier records merged, and ${q.totals.fixed} corrections applied. Nothing was rejected.`,
+      detail: `Seven duplicate invoices, one negative adjustment, and ${q.totals.fixed} corrections applied. Nothing was rejected.`,
       to: '/data-trust',
     });
   }

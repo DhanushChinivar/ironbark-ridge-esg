@@ -78,11 +78,11 @@ describe('dataQualityReport', () => {
 });
 
 describe('evidenceForRow', () => {
-  it('returns the credit note exactly as the CSV recorded it', async () => {
-    const creditNote = (await dataQualityReport(db)).findings.find(
-      (f) => f.ruleCode === 'FUEL_CREDIT_NOTE',
+  it('returns the negative delivery exactly as the CSV recorded it', async () => {
+    const negativeAdjustment = (await dataQualityReport(db)).findings.find(
+      (f) => f.ruleCode === 'FUEL_NEGATIVE_ACTIVITY',
     );
-    const evidence = await evidenceForRow(db, creditNote!.sourceRowId!);
+    const evidence = await evidenceForRow(db, negativeAdjustment!.sourceRowId!);
 
     expect(evidence?.fileName).toBe('fuel_deliveries.csv');
     // Raw means raw: the currency symbol and the negative are both still there.
@@ -93,13 +93,13 @@ describe('evidenceForRow', () => {
   });
 
   it('returns every finding raised against that row', async () => {
-    const creditNote = (await dataQualityReport(db)).findings.find(
-      (f) => f.ruleCode === 'FUEL_CREDIT_NOTE',
+    const negativeAdjustment = (await dataQualityReport(db)).findings.find(
+      (f) => f.ruleCode === 'FUEL_NEGATIVE_ACTIVITY',
     );
-    const codes = (await evidenceForRow(db, creditNote!.sourceRowId!))!.findings.map(
+    const codes = (await evidenceForRow(db, negativeAdjustment!.sourceRowId!))!.findings.map(
       (f) => f.ruleCode,
     );
-    expect(codes).toContain('FUEL_CREDIT_NOTE');
+    expect(codes).toContain('FUEL_NEGATIVE_ACTIVITY');
     expect(codes.length).toBeGreaterThan(1);
   });
 

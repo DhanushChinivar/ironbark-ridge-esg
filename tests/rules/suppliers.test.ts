@@ -151,6 +151,29 @@ describe('applySupplierRules', () => {
     });
   });
 
+  it('reports a field the two rows disagreed on, rather than dropping it', () => {
+    const conflicts = findings.filter((f) => f.ruleCode === 'SUP_MERGE_FIELD_CONFLICT');
+
+    // Ironline is "Fuel supply" on one row and "Fuel" on the other. Blackwood's
+    // rows agree, so only one merge has anything to report.
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0]?.sourceRowNumber).toBe(IRONLINE_DUP);
+    expect(conflicts[0]?.detail).toMatchObject({
+      field: 'category',
+      evidence: 'name',
+      kept: 'Fuel supply',
+      discarded: 'Fuel',
+      mergedIntoRowNumber: IRONLINE,
+    });
+  });
+
+  it('says nothing where the merged rows agreed on every field', () => {
+    const onBlackwood = findings.filter(
+      (f) => f.ruleCode === 'SUP_MERGE_FIELD_CONFLICT' && f.sourceRowNumber === BLACKWOOD_DUP,
+    );
+    expect(onBlackwood).toHaveLength(0);
+  });
+
   it('attaches every finding to the row that caused it', () => {
     for (const f of findings) {
       expect(f.sourceRowNumber).not.toBeNull();

@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { RouterLink, useRoute } from 'vue-router';
 
+// Sub-navigation within a section: the headline view, and the page that shows
+// how that view was arrived at. Three sections use the same pattern, so the
+// markup lives here once and each caller supplies its own labels.
+defineProps<{ tabs: { to: string; label: string }[] }>();
+
 const route = useRoute();
-const tabs = [
-  { to: '/safety', label: 'Findings' },
-  { to: '/safety/method', label: 'How this finding was generated' },
-];
 </script>
 
 <template>
@@ -23,7 +24,7 @@ const tabs = [
 </template>
 
 <style scoped>
-.subtabs { display: flex; gap: 4px; }
+.subtabs { display: flex; gap: 4px; flex-wrap: wrap; }
 
 .subtabs a {
   text-decoration: none;

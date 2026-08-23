@@ -117,8 +117,10 @@ export const emissionFactor = pgTable(
   ],
 );
 
-// Severity is recorded as both 1/2/3 and Low/Medium. The mapping lives in the
-// database rather than in code so the assumption stays visible and queryable.
+// Only the mappings that hold across the whole register. "Low" is absent on
+// purpose: it stands for 1 in some incident types and 2 in others, so it is
+// resolved per incident in the rules layer rather than from a table. What is
+// here is queryable, and each row carries the evidence for it.
 export const severityScale = pgTable('severity_scale', {
   rawValue: text('raw_value').primaryKey(),
   normalised: smallint('normalised').notNull(),
@@ -220,21 +222,29 @@ export const fuelDelivery = pgTable(
     // Which factor row was applied, so the calculation stays reproducible
     // even if a factor is later corrected. Null when unresolved, plus a finding.
     emissionFactorId: integer('emission_factor_id').references(() => emissionFactor.id),
-    // Negative deliveries are credit notes reversing an over-delivery, not errors.
-    isCreditNote: boolean('is_credit_note').notNull().default(false),
+    // A negative quantity with a matching negative cost. That pattern is what a
+    // credit note looks like, but the file never says so, so the column records
+    // the shape of the row rather than a conclusion about it.
+    isNegativeAdjustment: boolean('is_negative_adjustment').notNull().default(false),
     // Set on the later copy of an exact duplicate; excluded from totals.
     duplicateOfId: integer('duplicate_of_id').references((): AnyPgColumn => fuelDelivery.id),
   },
   (t) => [
     uniqueIndex('fuel_delivery_source_row_uq').on(t.sourceRowId),
+    check(
+      'fuel_delivery_duplicate_not_self',
+      sql`${t.duplicateOfId} is null or ${t.duplicateOfId} <> ${t.id}`,
+    ),
     index('fuel_delivery_date_idx').on(t.deliveryDate),
     index('fuel_delivery_invoice_idx').on(t.invoiceNo),
-    // `<> 0` rather than `> 0`: INV-41777 is a credit note, and rejecting it
-    // would overstate Scope 1 by 12,500 L of diesel.
+    // `<> 0` rather than `> 0`: INV-41777 carries a negative quantity, and
+    // rejecting it would overstate Scope 1 by 12,500 L of diesel.
     check('fuel_delivery_quantity_nonzero', sql`${t.quantityLitres} <> 0`),
+    // A negative quantity is only allowed where the row was recognised as an
+    // adjustment, so one cannot arrive unexamined.
     check(
-      'fuel_delivery_negative_is_credit',
-      sql`${t.quantityLitres} > 0 or ${t.isCreditNote} = true`,
+      'fuel_delivery_negative_is_adjustment',
+      sql`${t.quantityLitres} > 0 or ${t.isNegativeAdjustment} = true`,
     ),
   ],
 );
@@ -412,6 +422,16 @@ export const severityFlag = pgTable(
     check(
       'severity_flag_confidence_range',
       sql`${t.confidence} is null or ${t.confidence} between 0 and 1`,
+    ),
+    // Same 1-5 bound the incident table enforces. A model cannot widen the scale
+    // by suggesting a 7.
+    check(
+      'severity_flag_recorded_range',
+      sql`${t.recordedSeverity} is null or ${t.recordedSeverity} between 1 and 5`,
+    ),
+    check(
+      'severity_flag_suggested_range',
+      sql`${t.suggestedSeverity} is null or ${t.suggestedSeverity} between 1 and 5`,
     ),
   ],
 );

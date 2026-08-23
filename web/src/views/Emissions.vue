@@ -5,7 +5,12 @@ import { api } from '../api';
 import Panel from '../components/Panel.vue';
 import Stat from '../components/Stat.vue';
 import MonthlyChart, { type Focus } from '../components/MonthlyChart.vue';
-import ScopeTabs from '../components/ScopeTabs.vue';
+import SubTabs from '../components/SubTabs.vue';
+
+const tabs = [
+  { to: '/emissions', label: 'Figures' },
+  { to: '/emissions/calculation', label: 'How this value was calculated' },
+];
 
 const basis = ref<Basis>('corrected');
 const data = ref<MonthlyEmissions | null>(null);
@@ -59,7 +64,7 @@ const correction = computed(() => data.value?.correction);
       </div>
     </div>
 
-    <ScopeTabs />
+    <SubTabs :tabs="tabs" />
 
     <Panel :loading="loading" :error="error">
       <div class="stats">

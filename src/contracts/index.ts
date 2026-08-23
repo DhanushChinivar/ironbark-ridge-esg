@@ -50,6 +50,8 @@ const calculationLineSchema = z.object({
   changed: z.boolean(),
   /** Present when the line is shown but deliberately left out of the sum. */
   excludedBecause: z.string().nullable(),
+  /** Present when the line counts, but needs saying why it reads oddly. */
+  note: z.string().nullable(),
 });
 
 export const emissionsCalculationSchema = z.object({
@@ -74,6 +76,47 @@ export const emissionsCalculationSchema = z.object({
     totalTco2e: z.number(),
   }),
   availableMonths: z.array(z.string()),
+});
+
+// Fifteen supplier rows resolved to thirteen companies. Each merge states the
+// evidence behind it, because "same ABN" and "similar name" are not the same
+// claim and should not be presented as though they were.
+export const supplierResolutionSchema = z.object({
+  rowsRead: z.number().int(),
+  companies: z.array(
+    z.object({
+      supplierId: z.number().int(),
+      sourceRowNumber: z.number().int(),
+      name: z.string(),
+      abn: z.string().nullable(),
+      abnFormatValid: z.boolean().nullable(),
+      category: z.string().nullable(),
+      ownSpendAud: z.number().nullable(),
+      /** Own spend plus every row merged into it. */
+      totalSpendAud: z.number(),
+      mergedFrom: z.array(
+        z.object({
+          sourceRowNumber: z.number().int(),
+          name: z.string(),
+          abn: z.string().nullable(),
+          spendAud: z.number().nullable(),
+          matchMethod: z.string(),
+          /** True only for an ABN match. A name match is an inference. */
+          proven: z.boolean(),
+          /** The category this row carried, where it differed from the one kept. */
+          discardedCategory: z.string().nullable(),
+        }),
+      ),
+    }),
+  ),
+  totals: z.object({
+    companies: z.number().int(),
+    merged: z.number().int(),
+    provenMerges: z.number().int(),
+    inferredMerges: z.number().int(),
+    missingAbn: z.number().int(),
+    invalidAbn: z.number().int(),
+  }),
 });
 
 export const incidentSummarySchema = z.object({
@@ -223,6 +266,7 @@ export const evidenceSchema = z.object({
 export type MonthlyEmissions = z.infer<typeof monthlyEmissionsSchema>;
 export type EmissionsCalculation = z.infer<typeof emissionsCalculationSchema>;
 export type CalculationLine = z.infer<typeof calculationLineSchema>;
+export type SupplierResolution = z.infer<typeof supplierResolutionSchema>;
 export type IncidentSummary = z.infer<typeof incidentSummarySchema>;
 export type IncidentTrend = z.infer<typeof incidentTrendSchema>;
 export type DataQualityReport = z.infer<typeof dataQualityReportSchema>;

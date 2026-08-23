@@ -51,7 +51,7 @@ export async function promoteFuel(
           siteArea: d.siteArea,
           siteId: resolveSite(ref, 'fuel_deliveries', d.siteArea),
           emissionFactorId: resolveFactor(ref, d.fuelTypeNormalised),
-          isCreditNote: d.isCreditNote,
+          isNegativeAdjustment: d.isNegativeAdjustment,
         };
       }),
     )

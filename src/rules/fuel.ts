@@ -27,7 +27,7 @@ export interface CleanFuelDelivery {
   quantityLitres: string;
   costAud: string | null;
   siteArea: string;
-  isCreditNote: boolean;
+  isNegativeAdjustment: boolean;
   /** Row number of the first occurrence; null when this row is the first. */
   duplicateOfRowNumber: number | null;
 }
@@ -191,17 +191,18 @@ export function applyFuelRules(rows: RawFuelRow[], rawHeaders: string[] = []): F
       );
     }
 
-    const isCreditNote = litres < 0;
-    if (isCreditNote) {
+    const isNegativeAdjustment = litres < 0;
+    if (isNegativeAdjustment) {
       findings.push(
-        finding('FUEL_CREDIT_NOTE', r.rowNumber, {
+        finding('FUEL_NEGATIVE_ACTIVITY', r.rowNumber, {
           field: 'Quantity',
           originalValue: `${r.quantity} ${r.unit}`,
           detail: {
             invoiceNo: r.invoice_no,
             litres,
             costAud: cost,
-            // Both negative and consistent is what separates a reversal from a typo.
+            // Both negative and consistent is what separates a reversal from a
+            // typo. It is evidence, not proof: the file never states which.
             costAndQuantityAgree: cost !== null && cost < 0,
           },
         }),
@@ -238,7 +239,7 @@ export function applyFuelRules(rows: RawFuelRow[], rawHeaders: string[] = []): F
       quantityLitres: litres.toString(),
       costAud: cost === null ? null : cost.toFixed(2),
       siteArea: r.site_area,
-      isCreditNote,
+      isNegativeAdjustment,
       duplicateOfRowNumber: firstSeen ?? null,
     });
   }

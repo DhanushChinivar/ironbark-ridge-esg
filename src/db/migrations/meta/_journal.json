@@ -29,6 +29,13 @@
       "when": 1787197969331,
       "tag": "0003_one_promotion_per_source_row",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1787498530507,
+      "tag": "0004_negative_adjustment_and_range_checks",
+      "breakpoints": true
     }
   ]
 }

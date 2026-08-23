@@ -8,6 +8,7 @@ import DataTrust from './views/DataTrust.vue';
 import Report from './views/Report.vue';
 import Calculation from './views/Calculation.vue';
 import AiMethod from './views/AiMethod.vue';
+import Suppliers from './views/Suppliers.vue';
 import './theme.css';
 
 const router = createRouter({
@@ -19,6 +20,7 @@ const router = createRouter({
     { path: '/safety', component: Safety, name: 'Safety' },
     { path: '/safety/method', component: AiMethod, name: 'AI method' },
     { path: '/data-trust', component: DataTrust, name: 'Data trust' },
+    { path: '/data-trust/suppliers', component: Suppliers, name: 'Supplier matching' },
     { path: '/report', component: Report, name: 'Report' },
   ],
 });

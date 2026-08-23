@@ -56,7 +56,7 @@ export const duplicateDetail = z.object({
   fieldsCompared: z.array(z.string()),
 });
 
-export const creditNoteDetail = z.object({
+export const negativeAdjustmentDetail = z.object({
   invoiceNo: z.string(),
   litres: z.number(),
   costAud: z.number().nullable(),
@@ -116,7 +116,7 @@ export const DETAIL_SCHEMAS = {
   FUEL_MONTH_GAP: monthGapDetail,
   FUEL_HEADER_WHITESPACE: headerWhitespaceDetail,
   FUEL_EXACT_DUPLICATE: duplicateDetail,
-  FUEL_CREDIT_NOTE: creditNoteDetail,
+  FUEL_NEGATIVE_ACTIVITY: negativeAdjustmentDetail,
   FUEL_PRICE_OUTLIER: priceOutlierDetail,
   FUEL_DATE_MONTH_ONLY: monthPrecisionDetail,
   FUEL_UNIT_KL: unitConversionDetail,

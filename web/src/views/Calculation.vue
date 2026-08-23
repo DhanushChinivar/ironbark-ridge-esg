@@ -3,7 +3,12 @@ import { computed, ref, watch } from 'vue';
 import type { EmissionsCalculation } from '@contracts';
 import { api } from '../api';
 import Panel from '../components/Panel.vue';
-import ScopeTabs from '../components/ScopeTabs.vue';
+import SubTabs from '../components/SubTabs.vue';
+
+const tabs = [
+  { to: '/emissions', label: 'Figures' },
+  { to: '/emissions/calculation', label: 'How this value was calculated' },
+];
 
 // Every figure on the Emissions page is an aggregate. This page shows the rows
 // that aggregate summed, and then shows the aggregate again beside the hand
@@ -66,7 +71,7 @@ const monthLabel = (m: string) =>
       </div>
     </div>
 
-    <ScopeTabs />
+    <SubTabs :tabs="tabs" />
 
     <!-- The answer and the rule, before any evidence. A reader who only wants
          to know what the number is and where it comes from stops here. -->
@@ -124,7 +129,10 @@ const monthLabel = (m: string) =>
           <tbody>
             <tr v-for="line in scope.lines" :key="line.sourceRowNumber" :class="{ out: line.excludedBecause }">
               <td class="mono dim">{{ line.sourceFile }}:{{ line.sourceRowNumber }}</td>
-              <td class="mono">{{ line.reference }}</td>
+              <td class="mono">
+                {{ line.reference }}
+                <span v-if="line.note" class="tag sans">negative adjustment</span>
+              </td>
               <!-- A dash for the untouched majority so the corrections are the
                    only thing with ink in this column. -->
               <td class="mono">
@@ -166,7 +174,13 @@ const monthLabel = (m: string) =>
         </table>
       </div>
 
-      <ul v-if="scope.lines.some((l) => l.excludedBecause)" class="notes">
+      <ul v-if="scope.lines.some((l) => l.excludedBecause || l.note)" class="notes">
+        <li v-for="line in scope.lines.filter((l) => l.note)" :key="`n${line.sourceRowNumber}`">
+          <b class="mono">{{ line.reference }}</b> is a {{ line.note }}. Both the quantity and the
+          cost were recorded as negative and agree at $1.87 per litre, which reads as a reversal
+          rather than a mis-keyed sign. The file does not confirm that, so the row is counted as
+          recorded and flagged for someone to check against the supplier statement.
+        </li>
         <li v-for="line in scope.lines.filter((l) => l.excludedBecause)" :key="line.sourceRowNumber">
           <b class="mono">{{ line.reference }}</b> struck through — {{ line.excludedBecause }}. The
           row is kept and shown; it is not added.
@@ -301,6 +315,22 @@ h1 { margin: 0 0 8px; font-size: 33px; font-weight: 800; }
 
 .calc tfoot td { border-bottom: none; padding-top: 12px; font-weight: 700; }
 .calc tfoot .tonnes td { padding-top: 2px; color: var(--accent); }
+
+/* Table auto-layout will break "INV-40822" at its hyphen when the factor
+   column runs long. An invoice number is one token to a reader. */
+.calc td:nth-child(2) { white-space: nowrap; }
+
+.tag {
+  margin-left: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  vertical-align: 1px;
+}
 
 .notes { margin: 14px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--ink-faint); }
 .notes b { color: var(--ink-soft); }

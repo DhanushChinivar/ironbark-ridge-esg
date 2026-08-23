@@ -6,7 +6,12 @@ import { useAsync } from '../composables/useAsync';
 import Panel from '../components/Panel.vue';
 import Stat from '../components/Stat.vue';
 import DonutChart, { type Segment } from '../components/DonutChart.vue';
-import SafetyTabs from '../components/SafetyTabs.vue';
+import SubTabs from '../components/SubTabs.vue';
+
+const tabs = [
+  { to: '/safety', label: 'Findings' },
+  { to: '/safety/method', label: 'How this finding was generated' },
+];
 
 const summary = useAsync(() => api.incidentSummary());
 const trends = useAsync(() => api.incidentTrends());
@@ -125,7 +130,7 @@ const bySeverity = computed<Segment[]>(() =>
       </p>
     </div>
 
-    <SafetyTabs />
+    <SubTabs :tabs="tabs" />
 
     <Panel :loading="loading" :error="error">
       <div class="stats">

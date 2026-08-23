@@ -2,6 +2,7 @@ import {
   aiFindingsSchema,
   aiTraceSchema,
   dataQualityReportSchema,
+  supplierResolutionSchema,
   emissionsCalculationSchema,
   evidenceSchema,
   incidentSummarySchema,
@@ -26,6 +27,7 @@ export const api = {
   incidentSummary: () => get('/api/incidents/summary', incidentSummarySchema),
   incidentTrends: () => get('/api/incidents/trends', incidentTrendSchema),
   dataQuality: () => get('/api/data-quality', dataQualityReportSchema),
+  suppliers: () => get('/api/suppliers', supplierResolutionSchema),
   aiFindings: () => get('/api/ai/findings', aiFindingsSchema),
   evidence: (sourceRowId: number) => get(`/api/evidence/${sourceRowId}`, evidenceSchema),
   aiTrace: (incidentId: number | null) =>

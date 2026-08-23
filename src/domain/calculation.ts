@@ -20,6 +20,7 @@ interface LineRow extends Record<string, unknown> {
   kg_co2e: string;
   changed: boolean;
   excluded_because: string | null;
+  note: string | null;
 }
 
 const toLine = (r: LineRow): CalculationLine => ({
@@ -34,6 +35,7 @@ const toLine = (r: LineRow): CalculationLine => ({
   kgCo2e: Number(r.kg_co2e),
   changed: r.changed,
   excludedBecause: r.excluded_because,
+  note: r.note,
 });
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
@@ -46,7 +48,7 @@ export async function emissionsCalculation(
   const firstOfMonth = `${month}-01`;
 
   // Duplicates are listed, not hidden: a reader can see the row exists and see
-  // that it was left out. Same for the credit note, which subtracts.
+  // that it was left out. Same for the negative adjustment, which subtracts.
   const fuel = await tx.execute<LineRow>(sql`
     select 'fuel_deliveries.csv'                       as source_file,
            sr.row_number                               as source_row_number,
@@ -60,7 +62,12 @@ export async function emissionsCalculation(
            fd.quantity_as_recorded <> fd.quantity_litres as changed,
            case when fd.duplicate_of_id is not null
                 then 'exact duplicate of an earlier invoice'
-           end                                         as excluded_because
+           end                                         as excluded_because,
+           -- A negative litre count in a column of positives needs a reason
+           -- attached to it, or it reads as a fault in the arithmetic.
+           case when fd.is_negative_adjustment
+                then 'negative adjustment: recorded as a reversal, so it subtracts'
+           end                                         as note
     from fuel_delivery fd
     join source_row sr on sr.id = fd.source_row_id
     join emission_factor ef on ef.id = fd.emission_factor_id
@@ -82,7 +89,8 @@ export async function emissionsCalculation(
            ef.kg_co2e_per_unit                         as factor_per_unit,
            ${consumption} * ef.kg_co2e_per_unit        as kg_co2e,
            er.consumption_as_recorded <> ${consumption} as changed,
-           null::text                                  as excluded_because
+           null::text                                  as excluded_because,
+           null::text                                  as note
     from electricity_reading er
     join source_row sr on sr.id = er.source_row_id
     join emission_factor ef on ef.id = er.emission_factor_id

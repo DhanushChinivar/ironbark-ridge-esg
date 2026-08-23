@@ -6,6 +6,7 @@ import { db } from '../db/client.js';
 import {
   basisSchema,
   dataQualityReportSchema,
+  supplierResolutionSchema,
   emissionsCalculationSchema,
   aiFindingsSchema,
   aiTraceSchema,
@@ -20,6 +21,7 @@ import { incidentSummary, incidentTrend } from '../domain/incidents.js';
 import { dataQualityReport, evidenceForRow } from '../domain/dataQuality.js';
 import { aiFindings } from '../domain/ai.js';
 import { aiTrace } from '../domain/aiTrace.js';
+import { supplierResolution } from '../domain/suppliers.js';
 
 const api = express.Router();
 
@@ -92,6 +94,12 @@ api.get('/ai/trace', async (req, res) => {
   }
 
   res.json(aiTraceSchema.parse(trace));
+});
+
+// Suppliers resolve among themselves and join nothing else: there is no
+// supplier column in the delivery file to join on. Its own endpoint, then.
+api.get('/suppliers', async (_req, res) => {
+  res.json(supplierResolutionSchema.parse(await supplierResolution(db)));
 });
 
 api.get('/data-quality', async (_req, res) => {

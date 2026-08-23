@@ -7,6 +7,12 @@ import { useAsync } from '../composables/useAsync';
 import Panel from '../components/Panel.vue';
 import DonutChart, { type Segment } from '../components/DonutChart.vue';
 import RingMeter from '../components/RingMeter.vue';
+import SubTabs from '../components/SubTabs.vue';
+
+const tabs = [
+  { to: '/data-trust', label: 'Ledger' },
+  { to: '/data-trust/suppliers', label: 'How records were matched' },
+];
 
 const quality = useAsync(() => api.dataQuality());
 
@@ -93,6 +99,8 @@ function firstRowFor(ruleCode: string): number | null {
       </p>
     </div>
 
+    <SubTabs :tabs="tabs" />
+
     <div class="rings">
       <Panel
         title="Source rows accounted for"
@@ -144,7 +152,6 @@ function firstRowFor(ruleCode: string): number | null {
             <span :class="{ warn: f.rowsFlagged }"><b>{{ f.rowsFlagged }}</b> flagged</span>
             <span :class="{ bad: f.rowsRejected }"><b>{{ f.rowsRejected }}</b> rejected</span>
           </div>
-          <div class="hash mono" :title="f.contentHash">sha256 {{ f.contentHash.slice(0, 12) }}…</div>
         </div>
       </div>
       <p class="balance mono">
@@ -232,7 +239,7 @@ function firstRowFor(ruleCode: string): number | null {
             <li>Summary and the value of each correction</li>
             <li>Emissions by month, by scope, with the record count behind every row</li>
             <li>Psychosocial and severity findings, each with its quoted source</li>
-            <li>Per-file row counters, content hashes, and the full rule catalogue</li>
+            <li>Per-file row counters and the full rule catalogue</li>
             <li>Method and provenance</li>
           </ul>
         </div>
@@ -281,7 +288,7 @@ h1 { margin: 0; font-size: 33px; font-weight: 800; }
 .files { display: flex; flex-direction: column; }
 .file {
   display: grid;
-  grid-template-columns: minmax(210px, 1fr) auto auto;
+  grid-template-columns: minmax(210px, 1fr) auto;
   gap: 20px;
   align-items: center;
   padding: 11px 0;
@@ -295,7 +302,6 @@ h1 { margin: 0; font-size: 33px; font-weight: 800; }
 .counts b { color: var(--ink); font-weight: 500; }
 .counts .warn b { color: var(--amber); }
 .counts .bad b { color: var(--critical); }
-.hash { font-size: 10.5px; color: var(--ink-faint); }
 .balance { font-size: 11px; color: var(--ink-faint); margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--rule); }
 
 .filters { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; }
