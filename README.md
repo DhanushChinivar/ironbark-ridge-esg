@@ -32,7 +32,7 @@ reads top to bottom in the tree:
 | Path | Responsibility |
 |---|---|
 | `src/ingest` | Land raw CSV rows verbatim |
-| `src/rules` | Pure validation and normalisation, 21 rules — no database import, which is why most tests need no database |
+| `src/rules` | Pure validation and normalisation, 22 rules — no database import, which is why most tests need no database |
 | `src/promote` | Raw → typed domain tables |
 | `src/domain` | Emissions, incident and data quality calculations |
 | `src/ai` | Offline classification: prompts, hand labels, grounding check |
@@ -63,11 +63,14 @@ Requires Node 20+ and a PostgreSQL database (Neon recommended).
 ```bash
 npm install
 cp .env.example .env        # then fill in DATABASE_URL
-npm run db:migrate          # create the schema — 17 tables, 4 migrations
+npm run db:migrate          # create the schema — 17 tables, 5 migrations
 npm run seed                # emission factors, sites, calendar, known corrections
 npm run ingest              # clean and load the four operational CSVs
+npm run label               # the 42 hand-written incident labels
+npm run enrich              # classify the incidents — the only step that calls the API
+npm run evaluate            # score the classifier against the labels
 npm run dev                 # API on http://localhost:3000/api
-npm test                    # 134 tests
+npm test                    # 169 tests
 ```
 
 The dashboard is a separate Vite app in `web/`, run alongside the API:
@@ -88,6 +91,11 @@ and ingest clears the previous run before reloading.
 `emission_factors.csv` is reference data rather than operational data, so it is
 loaded by `seed` and does not appear in the ingest report.
 
+`label` and `enrich` are only needed for the Safety pages. `enrich` requires
+`ANTHROPIC_API_KEY` and is the one step that calls a model; everything else runs
+offline. Re-running `ingest` clears the incidents and takes the classifications
+with them, so `label` and `enrich` have to follow it.
+
 ## API
 
 | Endpoint | Returns |
@@ -96,8 +104,10 @@ loaded by `seed` and does not appear in the ingest report.
 | `GET /api/emissions/calculation` | The rows behind one month: quantity, factor and result per line, with the aggregate beside the hand total so the two can be compared |
 | `GET /api/incidents/summary` | Counts by severity, type and site |
 | `GET /api/incidents/trends` | Monthly incident counts, banded by severity |
+| `GET /api/ai/findings` | Every stored classification: hazard category, psychosocial flag, severity concern, each with the source quote it was grounded against |
 | `GET /api/ai/trace` | How one classification was reached: the instruction sent, the record given, the structured answer, and the groundedness check re-run against the stored description |
 | `GET /api/data-quality` | Every finding, per-rule counts, and per-file row counters |
+| `GET /api/suppliers` | Supplier records resolved to companies, each merge stating whether it rests on a shared ABN or on a name alone |
 | `GET /api/evidence/:sourceRowId` | A source row exactly as it arrived, with every finding raised against it |
 | `GET /api/health` | Liveness |
 
@@ -107,9 +117,9 @@ being sent, so a route cannot quietly drift from its published shape.
 ## Tests
 
 ```
-tests/rules/     89   pure functions, no database
-tests/domain/    31   SQL: aggregation, calendar joins, both bases
-tests/api/       14   routing, validation, contract conformance
+tests/rules/     93   pure functions, no database
+tests/domain/    48   SQL: aggregation, calendar joins, both bases
+tests/api/       28   routing, validation, contract conformance
 ```
 
 The rules tests run against rows lifted verbatim from the CSVs, so a passing
