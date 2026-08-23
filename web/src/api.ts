@@ -1,6 +1,7 @@
 import {
   aiFindingsSchema,
   dataQualityReportSchema,
+  emissionsCalculationSchema,
   evidenceSchema,
   incidentSummarySchema,
   incidentTrendSchema,
@@ -19,6 +20,8 @@ async function get<T>(path: string, schema: { parse: (v: unknown) => T }): Promi
 export const api = {
   emissions: (basis: Basis = 'corrected') =>
     get(`/api/emissions/monthly?basis=${basis}`, monthlyEmissionsSchema),
+  calculation: (month: string, basis: Basis = 'corrected') =>
+    get(`/api/emissions/calculation?month=${month}&basis=${basis}`, emissionsCalculationSchema),
   incidentSummary: () => get('/api/incidents/summary', incidentSummarySchema),
   incidentTrends: () => get('/api/incidents/trends', incidentTrendSchema),
   dataQuality: () => get('/api/data-quality', dataQualityReportSchema),

@@ -93,6 +93,7 @@ loaded by `seed` and does not appear in the ingest report.
 | Endpoint | Returns |
 |---|---|
 | `GET /api/emissions/monthly` | Scope 1 and 2 by month. `?basis=corrected` (default) or `as_reported`, so the size of our own corrections is visible |
+| `GET /api/emissions/calculation` | The rows behind one month: quantity, factor and result per line, with the aggregate beside the hand total so the two can be compared |
 | `GET /api/incidents/summary` | Counts by severity, type and site |
 | `GET /api/incidents/trends` | Monthly incident counts, banded by severity |
 | `GET /api/data-quality` | Every finding, per-rule counts, and per-file row counters |

@@ -108,7 +108,7 @@ const share = (n: number) => `${Math.round(n * 100)}%`;
 </template>
 
 <style scoped>
-.donut { display: flex; align-items: center; gap: 26px; flex-wrap: wrap; }
+.donut { display: flex; align-items: center; justify-content: center; gap: 22px 26px; flex-wrap: wrap; }
 .ring { flex: 0 0 auto; }
 svg { width: 168px; height: 168px; display: block; }
 circle[stroke-dasharray] { transition: opacity 0.12s ease; }
@@ -129,7 +129,7 @@ circle[stroke-dasharray] { transition: opacity 0.12s ease; }
   fill: var(--ink-faint);
 }
 
-.legend { list-style: none; margin: 0; padding: 0; flex: 1 1 220px; min-width: 210px; }
+.legend { list-style: none; margin: 0; padding: 0; flex: 1 1 190px; min-width: 180px; }
 .legend li {
   display: grid;
   grid-template-columns: 10px 1fr auto auto;

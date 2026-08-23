@@ -4,7 +4,14 @@ import { computed } from 'vue';
 // One ratio against its own total, not a two-slice pie: the track is the whole,
 // the arc is the part, and both are steps of the same hue.
 const props = withDefaults(
-  defineProps<{ value: number; of: number; caption?: string; note?: string }>(),
+  defineProps<{
+    value: number;
+    of: number;
+    caption?: string;
+    note?: string;
+    /** Overrides the percentage in the middle. A share is not always the point. */
+    centre?: string;
+  }>(),
   { caption: '' },
 );
 
@@ -15,12 +22,12 @@ const CIRC = 2 * Math.PI * R;
 
 const ratio = computed(() => (props.of === 0 ? 0 : props.value / props.of));
 const dash = computed(() => `${ratio.value * CIRC} ${CIRC}`);
-const pct = computed(() => `${Math.round(ratio.value * 100)}%`);
+const middle = computed(() => props.centre ?? `${Math.round(ratio.value * 100)}%`);
 </script>
 
 <template>
   <div class="meter">
-    <svg :viewBox="`0 0 ${SIZE} ${SIZE}`" role="img" :aria-label="`${pct} ${caption}`">
+    <svg :viewBox="`0 0 ${SIZE} ${SIZE}`" role="img" :aria-label="`${middle} ${caption}`">
       <g :transform="`rotate(-90 ${SIZE / 2} ${SIZE / 2})`">
         <circle
           :cx="SIZE / 2" :cy="SIZE / 2" :r="R"
@@ -32,7 +39,7 @@ const pct = computed(() => `${Math.round(ratio.value * 100)}%`);
           :stroke-dasharray="dash" stroke-linecap="round"
         />
       </g>
-      <text class="centre sans num" :x="SIZE / 2" :y="SIZE / 2 - 2">{{ pct }}</text>
+      <text class="centre sans num" :x="SIZE / 2" :y="SIZE / 2 - 2">{{ middle }}</text>
       <text v-if="caption" class="caption" :x="SIZE / 2" :y="SIZE / 2 + 16">{{ caption }}</text>
     </svg>
 

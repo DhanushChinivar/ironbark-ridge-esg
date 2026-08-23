@@ -16,13 +16,17 @@ defineProps<{ title?: string; note?: string; loading?: boolean; error?: string |
 
 <style scoped>
 .panel { padding: 24px 26px; }
+/* The note drops onto its own line rather than squeezing the title, which
+   otherwise wraps mid-phrase in a narrow card. */
 header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 16px;
+  gap: 6px 16px;
+  flex-wrap: wrap;
   margin-bottom: 18px;
 }
+header h2 { flex: 0 0 auto; }
 h2 { margin: 0; font-size: 14.5px; font-weight: 700; }
 .state { margin: 0; color: var(--ink-faint); font-size: 14px; }
 .err { color: var(--critical); }

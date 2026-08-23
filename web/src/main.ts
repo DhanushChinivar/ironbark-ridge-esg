@@ -6,6 +6,7 @@ import Emissions from './views/Emissions.vue';
 import Safety from './views/Safety.vue';
 import DataTrust from './views/DataTrust.vue';
 import Report from './views/Report.vue';
+import Calculation from './views/Calculation.vue';
 import './theme.css';
 
 const router = createRouter({
@@ -13,8 +14,9 @@ const router = createRouter({
   routes: [
     { path: '/', component: Overview, name: 'Overview' },
     { path: '/emissions', component: Emissions, name: 'Emissions' },
+    { path: '/emissions/calculation', component: Calculation, name: 'Calculation' },
     { path: '/safety', component: Safety, name: 'Safety' },
-    { path: '/data-trust', component: DataTrust, name: 'Data Trust' },
+    { path: '/data-trust', component: DataTrust, name: 'Data trust' },
     { path: '/report', component: Report, name: 'Report' },
   ],
 });

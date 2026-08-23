@@ -123,7 +123,9 @@ h2, h3 { letter-spacing: -0.02em; }
   border: 1px solid var(--panel-edge);
   border-radius: var(--radius);
   box-shadow: var(--lift);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
+.panel:hover { box-shadow: var(--lift-high); transform: translateY(-1px); }
 
 .num { font-variant-numeric: tabular-nums; }
 

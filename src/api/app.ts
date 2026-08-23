@@ -6,6 +6,7 @@ import { db } from '../db/client.js';
 import {
   basisSchema,
   dataQualityReportSchema,
+  emissionsCalculationSchema,
   aiFindingsSchema,
   evidenceSchema,
   incidentSummarySchema,
@@ -13,6 +14,7 @@ import {
   monthlyEmissionsSchema,
 } from '../contracts/index.js';
 import { monthlyEmissions } from '../domain/emissions.js';
+import { emissionsCalculation } from '../domain/calculation.js';
 import { incidentSummary, incidentTrend } from '../domain/incidents.js';
 import { dataQualityReport, evidenceForRow } from '../domain/dataQuality.js';
 import { aiFindings } from '../domain/ai.js';
@@ -31,6 +33,29 @@ api.get('/emissions/monthly', async (req, res) => {
   }
   const data = await monthlyEmissions(db, basis.data);
   res.json(monthlyEmissionsSchema.parse(data));
+});
+
+// The same month the dashboard charts, with the arithmetic left unrolled.
+api.get('/emissions/calculation', async (req, res) => {
+  const basis = basisSchema.safeParse(req.query.basis ?? 'corrected');
+  if (!basis.success) {
+    res.status(400).json({ error: 'basis must be "corrected" or "as_reported"' });
+    return;
+  }
+
+  const month = String(req.query.month ?? '');
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+    res.status(400).json({ error: 'month must be YYYY-MM' });
+    return;
+  }
+
+  const data = await emissionsCalculation(db, month, basis.data);
+  if (!data.availableMonths.includes(month)) {
+    res.status(404).json({ error: `No reporting period ${month}` });
+    return;
+  }
+
+  res.json(emissionsCalculationSchema.parse(data));
 });
 
 api.get('/incidents/summary', async (_req, res) => {

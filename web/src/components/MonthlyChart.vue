@@ -10,8 +10,10 @@ const props = withDefaults(
 );
 
 const W = 900;
-const H = 260;
-const PAD = { top: 12, right: 8, bottom: 30, left: 46 };
+const H = 286;
+// Room on the left for the rotated axis title, and below for the axis name
+// under the month ticks.
+const PAD = { top: 12, right: 8, bottom: 52, left: 64 };
 
 const hovered = ref<number | null>(null);
 
@@ -23,13 +25,7 @@ const plotW = W - PAD.left - PAD.right;
 const plotH = H - PAD.top - PAD.bottom;
 const band = computed(() => plotW / props.months.length);
 const stacked = computed(() => props.focus === 'both');
-
-// Stacked, one bar carries both scopes. Focused, they sit side by side so both
-// are measured from zero - which is the only way to read the top series' own
-// shape rather than the shape of whatever is under it.
-const barW = computed(() =>
-  stacked.value ? Math.min(band.value * 0.52, 26) : Math.min(band.value * 0.26, 13),
-);
+const barW = computed(() => Math.min(band.value * 0.52, 26));
 
 // Rounded at the free end, square where it meets the baseline or the segment
 // below. A plain rx would round all four corners and lift the bar off its axis.
@@ -51,15 +47,20 @@ const y = (v: number) => PAD.top + plotH - (v / max.value) * plotH;
 const height = (v: number) => plotH - (y(v) - PAD.top);
 
 const x = (i: number) => PAD.left + i * band.value + (band.value - barW.value) / 2;
-// Side by side, the pair straddles the slot the single bar would have occupied.
-const xPair = (i: number, second = false) =>
-  PAD.left + i * band.value + (band.value - barW.value * 2 - 3) / 2 + (second ? barW.value + 3 : 0);
+const fade = (i: number) => (hovered.value === null || hovered.value === i ? 1 : 0.3);
 
-// The unfocused scope is not removed, only pushed back. Dropping it would take
-// the March 2026 trade-off off the chart entirely, and that is the finding.
-const dim = (scope: 'scope1' | 'scope2', index: number) => {
-  const faded = props.focus !== 'both' && props.focus !== scope ? 0.28 : 1;
-  return hovered.value === null || hovered.value === index ? faded : faded * 0.35;
+// A single scope shows only itself. That is safe here only because the stacked
+// chart sits beside it carrying the comparison - alone, a Scope 1 chart spiking
+// in March 2026 would look unexplained.
+const solo = (m: MonthlyEmissions['months'][number]) =>
+  props.focus === 'scope1' ? m.scope1Tco2e : m.scope2Tco2e;
+
+// Marked only where the missing series is one this chart actually draws. Fuel
+// is absent in Nov 2025, which says nothing about the electricity chart.
+const missing = (m: MonthlyEmissions['months'][number]) => {
+  if (props.focus === 'scope1') return !m.hasFuelData;
+  if (props.focus === 'scope2') return !m.hasElectricityData;
+  return !m.hasFuelData || !m.hasElectricityData;
 };
 
 // Round hundreds for gridlines rather than a fixed count, so the labels are
@@ -84,6 +85,17 @@ const fmt = (n: number) => n.toLocaleString('en-AU', { maximumFractionDigits: 0 
         </template>
       </g>
 
+      <!-- Named axes: the tick numbers alone never say what is being measured. -->
+      <text
+        class="axis-title"
+        :transform="`rotate(-90 14 ${PAD.top + plotH / 2})`"
+        :x="14"
+        :y="PAD.top + plotH / 2"
+      >
+        <tspan class="unit-case">t CO₂e</tspan>
+      </text>
+      <text class="axis-title" :x="PAD.left + plotW / 2" :y="H - 6">Month</text>
+
       <g v-for="(m, i) in months" :key="m.month">
         <rect
           class="hit"
@@ -98,62 +110,73 @@ const fmt = (n: number) => n.toLocaleString('en-AU', { maximumFractionDigits: 0 
           <path
             class="s2"
             :d="capped(x(i), y(m.scope2Tco2e), barW, height(m.scope2Tco2e))"
-            :opacity="dim('scope2', i)"
+            :opacity="fade(i)"
           />
           <!-- 2px short of the segment below it, so the two scopes stay two marks
                rather than merging into one column. -->
           <path
             class="s1"
             :d="capped(x(i), y(m.totalTco2e), barW, y(m.scope2Tco2e) - y(m.totalTco2e) - 2)"
-            :opacity="dim('scope1', i)"
+            :opacity="fade(i)"
           />
         </template>
-        <template v-else>
-          <path
-            class="s1"
-            :d="capped(xPair(i), y(m.scope1Tco2e), barW, height(m.scope1Tco2e))"
-            :opacity="dim('scope1', i)"
-          />
-          <path
-            class="s2"
-            :d="capped(xPair(i, true), y(m.scope2Tco2e), barW, height(m.scope2Tco2e))"
-            :opacity="dim('scope2', i)"
-          />
-        </template>
+        <path
+          v-else
+          :class="focus"
+          :d="capped(x(i), y(solo(m)), barW, height(solo(m)))"
+          :opacity="fade(i)"
+        />
         <!-- A month with no fuel data is marked, not left to read as zero. -->
         <text
-          v-if="!m.hasFuelData"
+          v-if="missing(m)"
           class="gap"
           :x="PAD.left + i * band + band / 2"
           :y="y(stacked ? m.scope2Tco2e : 0) - 7"
         >
           no data
         </text>
-        <text class="month" :x="PAD.left + i * band + band / 2" :y="H - 10">
+        <text class="month" :x="PAD.left + i * band + band / 2" :y="H - 32">
           {{ m.month.slice(5) }}
         </text>
         <text
           v-if="m.month.endsWith('-01')"
           class="year"
           :x="PAD.left + i * band + band / 2"
-          :y="H - 21"
+          :y="H - 43"
         >
           {{ m.month.slice(0, 4) }}
         </text>
       </g>
     </svg>
 
+    <!-- The key names only what is actually drawn. A Scope 2 swatch under a
+         Scope 1 chart claims a series that is not there. -->
     <div class="readout mono" :class="{ dim: hovered === null }">
       <template v-if="hovered !== null && months[hovered]">
         <b>{{ months[hovered]!.month }}</b>
-        <span class="k s1">Scope 1</span> {{ fmt(months[hovered]!.scope1Tco2e) }} t
-        <span class="k s2">Scope 2</span> {{ fmt(months[hovered]!.scope2Tco2e) }} t
-        <span class="k">Total</span> {{ fmt(months[hovered]!.totalTco2e) }} t
+        <template v-if="stacked">
+          <span class="k s1">Scope 1</span> {{ fmt(months[hovered]!.scope1Tco2e) }} t CO₂e
+          <span class="k s2">Scope 2</span> {{ fmt(months[hovered]!.scope2Tco2e) }} t CO₂e
+          <span class="k">Total</span> {{ fmt(months[hovered]!.totalTco2e) }} t CO₂e
+        </template>
+        <template v-else>
+          <span class="k" :class="focus === 'scope1' ? 's1' : 's2'">
+            {{ focus === 'scope1' ? 'Scope 1' : 'Scope 2' }}
+          </span>
+          {{ fmt(solo(months[hovered]!)) }} t CO₂e
+        </template>
         <span v-if="!months[hovered]!.hasFuelData" class="warn">no fuel deliveries recorded</span>
       </template>
-      <template v-else>
+
+      <template v-else-if="stacked">
         <span class="k s1">Scope 1</span> fuel
         <span class="k s2">Scope 2</span> electricity — hover a month
+      </template>
+      <template v-else>
+        <span class="k" :class="focus === 'scope1' ? 's1' : 's2'">
+          {{ focus === 'scope1' ? 'Scope 1' : 'Scope 2' }}
+        </span>
+        {{ focus === 'scope1' ? 'fuel' : 'electricity' }} — hover a month
       </template>
     </div>
   </div>
@@ -167,8 +190,8 @@ svg { width: 100%; height: auto; display: block; }
 .grid text { font-family: 'JetBrains Mono', monospace; font-size: 10px; fill: var(--ink-faint); }
 
 .hit { fill: transparent; }
-.s1 { fill: var(--scope1); }
-.s2 { fill: var(--scope2); }
+.s1, .scope1 { fill: var(--scope1); }
+.s2, .scope2 { fill: var(--scope2); }
 
 .month, .year {
   font-family: 'JetBrains Mono', monospace;
@@ -177,6 +200,18 @@ svg { width: 100%; height: auto; display: block; }
   text-anchor: middle;
 }
 .year { font-weight: 700; fill: var(--ink-soft); }
+
+/* A chemical formula is not a word: uppercasing it turns CO₂e into CO₂E. */
+.unit-case { text-transform: none; }
+
+.axis-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  fill: var(--ink-faint);
+  text-anchor: middle;
+}
 
 .gap {
   font-family: 'JetBrains Mono', monospace;

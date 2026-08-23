@@ -12,7 +12,7 @@ const nav = [
   { to: '/', label: 'Overview', icon: 'grid' },
   { to: '/emissions', label: 'Emissions', icon: 'cloud' },
   { to: '/safety', label: 'Safety', icon: 'hat' },
-  { to: '/data-trust', label: 'Data Trust', icon: 'layers' },
+  { to: '/data-trust', label: 'Data trust', icon: 'layers' },
 ] as const;
 
 // Kept apart from the four above. Those are places to look at the data; this is

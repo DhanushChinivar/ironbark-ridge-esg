@@ -42,16 +42,28 @@ const rules = computed(() =>
 // Drill-down. One click from a finding to the CSV line that caused it.
 const evidence = ref<Evidence | null>(null);
 const evidenceError = ref<string | null>(null);
-const openRow = ref<number | null>(null);
+const openRule = ref<string | null>(null);
 
-async function inspect(sourceRowId: number) {
-  openRow.value = sourceRowId;
+// One rule open at a time, its evidence inline underneath. A rule that explains
+// itself in the abstract is a claim; the row it fired on is the proof.
+async function toggle(ruleCode: string) {
+  if (openRule.value === ruleCode) {
+    openRule.value = null;
+    return;
+  }
+  openRule.value = ruleCode;
   evidence.value = null;
   evidenceError.value = null;
+
+  const rowId = firstRowFor(ruleCode);
+  if (rowId === null) return;
   try {
-    evidence.value = await api.evidence(sourceRowId);
+    const found = await api.evidence(rowId);
+    if (openRule.value === ruleCode) evidence.value = found;
   } catch (e) {
-    evidenceError.value = e instanceof Error ? e.message : String(e);
+    if (openRule.value === ruleCode) {
+      evidenceError.value = e instanceof Error ? e.message : String(e);
+    }
   }
 }
 
@@ -72,15 +84,23 @@ function firstRowFor(ruleCode: string): number | null {
     </div>
 
     <div class="rings">
-      <Panel title="Rows kept" note="read to promoted" :loading="quality.loading.value" :error="quality.error.value">
+      <Panel
+        title="Source rows accounted for"
+        note="read = promoted + rejected"
+        :loading="quality.loading.value"
+        :error="quality.error.value"
+      >
+        <!-- Not "100% promoted": with 341 findings on the page that reads as
+             "the data was fine". Accounted for is the claim being made. -->
         <RingMeter
           :value="rowsPromoted"
           :of="rowsRead"
-          caption="promoted"
-          note="A database constraint enforces read = promoted + rejected."
+          :centre="`${rowsPromoted} / ${rowsRead}`"
+          caption="accounted for"
+          note="A database constraint enforces this, so no row can go missing unrecorded."
         >
           <ul class="tally">
-            <li><span>rows read</span><b class="mono num">{{ rowsRead }}</b></li>
+            <li><span>read from source</span><b class="mono num">{{ rowsRead }}</b></li>
             <li><span>promoted</span><b class="mono num">{{ rowsPromoted }}</b></li>
             <li><span>rejected</span><b class="mono num">{{ rowsRejected }}</b></li>
           </ul>
@@ -137,21 +157,52 @@ function firstRowFor(ruleCode: string): number | null {
       </div>
 
       <ul class="rules">
-        <li v-for="r in rules" :key="r.ruleCode">
-          <div class="rhead">
+        <li v-for="r in rules" :key="r.ruleCode" :class="{ open: openRule === r.ruleCode }">
+          <button
+            class="rhead"
+            :aria-expanded="openRule === r.ruleCode"
+            :disabled="!firstRowFor(r.ruleCode)"
+            @click="toggle(r.ruleCode)"
+          >
             <span class="code mono">{{ r.ruleCode }}</span>
             <span class="act" :class="r.action">{{ r.action }}</span>
             <span class="count mono num">{{ r.count }}</span>
-            <button
-              v-if="firstRowFor(r.ruleCode)"
-              class="inspect"
-              @click="inspect(firstRowFor(r.ruleCode)!)"
-            >
-              View a row
-            </button>
-          </div>
+            <span v-if="firstRowFor(r.ruleCode)" class="chev" aria-hidden="true">
+              {{ openRule === r.ruleCode ? '−' : '+' }}
+            </span>
+          </button>
           <p class="msg">{{ r.message }}</p>
           <p class="why">{{ r.rationale }}</p>
+
+          <div v-if="openRule === r.ruleCode" class="drill">
+            <p v-if="evidenceError" class="err">{{ evidenceError }}</p>
+            <p v-else-if="!evidence" class="loading">Loading the row…</p>
+            <template v-else>
+              <div class="eyebrow">
+                {{ evidence.fileName }} · row {{ evidence.rowNumber }} · {{ evidence.disposition }}
+              </div>
+
+              <table class="raw mono">
+                <tbody>
+                  <tr v-for="(v, k) in evidence.raw" :key="k">
+                    <td class="k">{{ k }}</td>
+                    <td>{{ v }}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div v-for="f in evidence.findings" :key="f.id" class="f">
+                <div class="fh">
+                  <span class="code mono">{{ f.ruleCode }}</span>
+                  <span class="act" :class="f.action">{{ f.action }}</span>
+                  <span v-if="f.correctedValue" class="change mono">
+                    {{ f.originalValue }} → {{ f.correctedValue }}
+                  </span>
+                </div>
+                <p class="why">{{ f.rationale }}</p>
+              </div>
+            </template>
+          </div>
         </li>
       </ul>
     </Panel>
@@ -176,37 +227,6 @@ function firstRowFor(ruleCode: string): number | null {
       </div>
     </Panel>
 
-    <Panel v-if="openRow !== null" title="Evidence" :note="`source row ${openRow}`">
-      <p v-if="evidenceError" class="err">{{ evidenceError }}</p>
-      <p v-else-if="!evidence" class="loading">Loading…</p>
-      <div v-else class="evidence">
-        <div class="eyebrow">
-          {{ evidence.fileName }} · row {{ evidence.rowNumber }} · {{ evidence.disposition }}
-        </div>
-
-        <table class="raw mono">
-          <tbody>
-            <tr v-for="(v, k) in evidence.raw" :key="k">
-              <td class="k">{{ k }}</td>
-              <td>{{ v }}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div class="found">
-          <div v-for="f in evidence.findings" :key="f.id" class="f">
-            <div class="fh">
-              <span class="code mono">{{ f.ruleCode }}</span>
-              <span class="act" :class="f.action">{{ f.action }}</span>
-              <span v-if="f.correctedValue" class="change mono">
-                {{ f.originalValue }} → {{ f.correctedValue }}
-              </span>
-            </div>
-            <p class="why">{{ f.rationale }}</p>
-          </div>
-        </div>
-      </div>
-    </Panel>
   </div>
 </template>
 
@@ -269,9 +289,35 @@ h1 { margin: 0; font-size: 33px; font-weight: 800; }
 .rules li { padding: 15px 0; border-top: 1px solid var(--rule); display: flex; flex-direction: column; gap: 5px; }
 .rules li:first-child { border-top: none; padding-top: 0; }
 
-.rhead { display: flex; align-items: center; gap: 12px; }
+.rhead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  border-radius: 0;
+  text-align: left;
+}
+.rhead:not(:disabled) { cursor: pointer; }
+.rhead:disabled { cursor: default; }
+.rhead:hover:not(:disabled) .code { color: var(--ramp-2); }
+.chev { font-size: 15px; color: var(--ink-faint); line-height: 1; width: 12px; text-align: center; }
+
+.drill {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--paper);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
 .code { font-size: 12px; font-weight: 500; color: var(--ink); }
 .count { font-size: 12px; color: var(--ink-faint); margin-left: auto; }
+.rules li.open { padding-bottom: 20px; }
 
 .act {
   font-family: 'JetBrains Mono', monospace;

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { api } from '../api';
 import { useAsync } from '../composables/useAsync';
 import Panel from '../components/Panel.vue';
@@ -13,8 +14,18 @@ const ai = useAsync(() => api.aiFindings());
 const loading = computed(() => summary.loading.value || ai.loading.value || trends.loading.value);
 const error = computed(() => summary.error.value ?? ai.error.value ?? trends.error.value);
 
+// Readable in the URL so the Overview can link straight at a finding type.
 type Filter = 'psychosocial' | 'severity' | 'all';
-const filter = ref<Filter>('psychosocial');
+const FILTERS: Filter[] = ['psychosocial', 'severity', 'all'];
+
+const route = useRoute();
+const router = useRouter();
+const asFilter = (v: unknown): Filter =>
+  FILTERS.includes(v as Filter) ? (v as Filter) : 'psychosocial';
+
+const filter = ref<Filter>(asFilter(route.query.show));
+watch(() => route.query.show, (v) => { filter.value = asFilter(v); });
+watch(filter, (v) => { router.replace({ query: { ...route.query, show: v } }); });
 
 const shown = computed(() => {
   const f = ai.data.value?.findings ?? [];
@@ -89,13 +100,13 @@ const bySeverity = computed<Segment[]>(() =>
           label="Psychosocial hazards"
           :value="String(ai.data.value?.totals.psychosocial ?? 0)"
           tone="oxide"
-          note="none coded as such"
+          note="AI-identified · none coded as such"
         />
         <Stat
-          label="Severity inconsistencies"
+          label="Severity concerns"
           :value="String(ai.data.value?.totals.severityInconsistent ?? 0)"
           tone="oxide"
-          note="all recorded at severity 1"
+          note="AI-identified · all recorded at severity 1"
         />
         <Stat
           label="Unresolved severity"
@@ -153,10 +164,18 @@ const bySeverity = computed<Segment[]>(() =>
       </div>
     </Panel>
 
-    <Panel title="AI findings" :note="`${ai.data.value?.model ?? ''} · ${ai.data.value?.promptVersion ?? ''}`" :loading="loading" :error="error">
+    <Panel title="AI findings" note="AI analysis · criteria-guided" :loading="loading" :error="error">
+      <p class="lede-sm">
+        AI-assisted findings, each grounded in a quote from the original incident description.
+        <!-- Model and prompt belong in the record, not in the headline. -->
+        <span class="provenance mono" :title="`model ${ai.data.value?.model ?? '—'}, prompt ${ai.data.value?.promptVersion ?? '—'}`">
+          {{ ai.data.value?.model ?? '—' }} · {{ ai.data.value?.promptVersion ?? '—' }}
+        </span>
+      </p>
+
       <div class="filters">
         <button :aria-pressed="filter === 'psychosocial'" @click="filter = 'psychosocial'">
-          Psychosocial
+          Psychosocial hazards
         </button>
         <button :aria-pressed="filter === 'severity'" @click="filter = 'severity'">
           Severity concerns
@@ -174,6 +193,9 @@ const bySeverity = computed<Segment[]>(() =>
             <span v-if="f.isPsychosocial" class="chip psy">psychosocial</span>
             <span v-if="f.severityInconsistent" class="chip sev">
               suggests severity {{ f.suggestedSeverity }}
+            </span>
+            <span v-if="f.categoryConfidence !== null" class="conf">
+              confidence {{ f.categoryConfidence.toFixed(2) }}
             </span>
           </div>
 
@@ -237,7 +259,11 @@ h1 { margin: 0; font-size: 33px; font-weight: 800; }
   color: var(--ink-faint);
 }
 
+.lede-sm { margin: 0 0 16px; font-size: 13.5px; color: var(--ink-soft); max-width: 72ch; }
+.provenance { font-size: 11px; color: var(--ink-faint); white-space: nowrap; }
+
 .filters { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; }
+.conf { color: var(--ink-faint); }
 
 .findings { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .findings li { padding: 18px 0; border-top: 1px solid var(--rule); display: flex; flex-direction: column; gap: 8px; }

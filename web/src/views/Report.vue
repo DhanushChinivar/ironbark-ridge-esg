@@ -50,7 +50,7 @@ function printReport() {
   <div class="report" :class="{ ready: !loading && !error }">
     <!-- Screen-only chrome. The print rules below drop all of it. -->
     <div class="toolbar no-print">
-      <RouterLink to="/data-trust" class="back">← Back to Data Trust</RouterLink>
+      <RouterLink to="/data-trust" class="back">← Back to Data trust</RouterLink>
       <div class="actions">
         <span class="hint">Choose “Save as PDF” as the destination</span>
         <button class="primary" :disabled="loading || !!error" @click="printReport">
@@ -86,11 +86,11 @@ function printReport() {
             </tr>
             <tr>
               <td>Scope 1 — diesel and fuel deliveries</td>
-              <td class="n">{{ t(emissions.data.value?.totals.scope1Tco2e ?? 0) }} t</td>
+              <td class="n">{{ t(emissions.data.value?.totals.scope1Tco2e ?? 0) }} t CO₂e</td>
             </tr>
             <tr>
               <td>Scope 2 — purchased electricity</td>
-              <td class="n">{{ t(emissions.data.value?.totals.scope2Tco2e ?? 0) }} t</td>
+              <td class="n">{{ t(emissions.data.value?.totals.scope2Tco2e ?? 0) }} t CO₂e</td>
             </tr>
             <tr>
               <td>Safety incidents recorded</td>
@@ -169,8 +169,8 @@ function printReport() {
         <p>
           {{ psychosocial.length }} incidents describe a hazard recognised by Queensland's
           <i>Managing the risk of psychosocial hazards at work Code of Practice 2022</i>. None is
-          coded as such in the register, which has no psychosocial type code — they are therefore
-          invisible to any count by type.
+          coded as such in the register, which has no psychosocial type code, so they are invisible
+          to any count by type.
         </p>
         <ol class="findings">
           <li v-for="f in psychosocial" :key="f.incidentId">
@@ -184,7 +184,7 @@ function printReport() {
           </li>
         </ol>
 
-        <h3>3.2 &nbsp;Severity inconsistencies</h3>
+        <h3>3.2 &nbsp;Severity concerns</h3>
         <p>
           {{ severityConcerns.length }} incidents record a severity below what the description
           states. Each was recorded at severity 1.

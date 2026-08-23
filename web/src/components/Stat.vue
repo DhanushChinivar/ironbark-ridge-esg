@@ -17,6 +17,12 @@ defineProps<{ label: string; value: string; unit?: string; note?: string; tone?:
 .value { font-size: 31px; font-weight: 800; letter-spacing: -0.035em; line-height: 1.05; }
 .value.oxide { color: var(--oxide); }
 .value.slate { color: var(--slate); }
-.unit { font-size: 14px; font-weight: 500; margin-left: 4px; color: var(--ink-faint); }
+.unit {
+  font-size: 13px;
+  font-weight: 500;
+  margin-left: 6px;
+  letter-spacing: 0;
+  color: var(--ink-faint);
+}
 .note { font-size: 13px; color: var(--ink-soft); }
 </style>

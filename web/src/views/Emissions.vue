@@ -5,6 +5,7 @@ import { api } from '../api';
 import Panel from '../components/Panel.vue';
 import Stat from '../components/Stat.vue';
 import MonthlyChart, { type Focus } from '../components/MonthlyChart.vue';
+import ScopeTabs from '../components/ScopeTabs.vue';
 
 const basis = ref<Basis>('corrected');
 const data = ref<MonthlyEmissions | null>(null);
@@ -24,16 +25,14 @@ async function load() {
 }
 watch(basis, load, { immediate: true });
 
-// Focus, not filter. Picking a scope emphasises it and moves both onto a common
-// baseline; it never takes the other one off the chart, because the thing worth
-// seeing here is the trade between them.
-const focus = ref<Focus>('both');
-const focusTabs: { value: Focus; label: string; note: string }[] = [
-  { value: 'both', label: 'Both', note: 'stacked — total and mix' },
-  { value: 'scope1', label: 'Scope 1', note: 'fuel, against Scope 2 for scale' },
-  { value: 'scope2', label: 'Scope 2', note: 'electricity, against Scope 1 for scale' },
+// Three charts rather than one with a switch. Combined answers "what is the
+// total and how is it split"; the two singles answer "how is this scope moving",
+// which a stacked bar cannot because the upper series has no fixed baseline.
+const charts: { focus: Focus; title: string; note: string }[] = [
+  { focus: 'both', title: 'Combined', note: 'stacked, total and mix' },
+  { focus: 'scope1', title: 'Scope 1 — fuel', note: 'diesel deliveries' },
+  { focus: 'scope2', title: 'Scope 2 — electricity', note: 'metered grid supply' },
 ];
-const focusNote = computed(() => focusTabs.find((f) => f.value === focus.value)?.note ?? '');
 
 const t = (n: number) => n.toLocaleString('en-AU', { maximumFractionDigits: 0 });
 const correction = computed(() => data.value?.correction);
@@ -60,11 +59,13 @@ const correction = computed(() => data.value?.correction);
       </div>
     </div>
 
+    <ScopeTabs />
+
     <Panel :loading="loading" :error="error">
       <div class="stats">
         <Stat label="Total" :value="t(data?.totals.totalTco2e ?? 0)" unit="t CO₂e" />
-        <Stat label="Scope 1" :value="t(data?.totals.scope1Tco2e ?? 0)" unit="t" tone="oxide" />
-        <Stat label="Scope 2" :value="t(data?.totals.scope2Tco2e ?? 0)" unit="t" tone="slate" />
+        <Stat label="Scope 1" :value="t(data?.totals.scope1Tco2e ?? 0)" unit="t CO₂e" tone="oxide" />
+        <Stat label="Scope 2" :value="t(data?.totals.scope2Tco2e ?? 0)" unit="t CO₂e" tone="slate" />
         <Stat
           label="Months reported"
           :value="String(data?.months.length ?? 0)"
@@ -73,50 +74,48 @@ const correction = computed(() => data.value?.correction);
       </div>
     </Panel>
 
-    <Panel title="Monthly, by scope" :note="focusNote" :loading="loading" :error="error">
-      <div class="tabs">
-        <button
-          v-for="tab in focusTabs"
-          :key="tab.value"
-          :aria-pressed="focus === tab.value"
-          @click="focus = tab.value"
-        >
-          {{ tab.label }}
-        </button>
-      </div>
-      <MonthlyChart v-if="data" :months="data.months" :focus="focus" />
-      <p class="axis-note">
-        The scale is the same on all three, so the bars stay comparable between them.
+    <Panel
+      v-for="c in charts"
+      :key="c.focus"
+      :title="c.title"
+      :note="c.note"
+      :loading="loading"
+      :error="error"
+    >
+      <MonthlyChart v-if="data" :months="data.months" :focus="c.focus" />
+      <p v-if="c.focus === 'scope2'" class="axis-note">
+        All three charts share one scale, so a bar means the same height on each.
       </p>
     </Panel>
 
-    <Panel title="What the correction is worth" :loading="loading" :error="error">
+    <Panel title="Impact of data correction" :loading="loading" :error="error">
       <div v-if="correction" class="correction">
+<!-- Event, then what was done, then what it was worth. The meter ID and the
+             unit are provenance, so they sit inside the sentence rather than open it. -->
         <p>
-          Meter MTR-07 began reporting in megawatt-hours from October 2025 while still labelled kWh,
-          and had not recovered by the last available reading. Left alone, Scope 2 would be
-          understated by
-          <b>{{ t(correction.differenceTco2e) }} t CO₂e</b> across the period.
+          From October 2025, one electricity meter (MTR-07) started reporting in the wrong unit.
+          It was recording megawatt-hours but still labelled kWh, and it had not recovered by the
+          last available reading. We corrected it. Without that correction, Scope 2 would be
+          understated by <b>{{ t(correction.differenceTco2e) }} t CO₂e</b> across the period.
         </p>
         <table class="num mono">
           <tbody>
             <tr>
               <td>As reported</td>
-              <td>{{ t(correction.scope2AsReportedTco2e) }} t</td>
+              <td>{{ t(correction.scope2AsReportedTco2e) }} t CO₂e</td>
             </tr>
             <tr>
               <td>Corrected</td>
-              <td>{{ t(correction.scope2CorrectedTco2e) }} t</td>
+              <td>{{ t(correction.scope2CorrectedTco2e) }} t CO₂e</td>
             </tr>
             <tr class="delta">
               <td>Difference</td>
-              <td>+{{ t(correction.differenceTco2e) }} t</td>
+              <td>+{{ t(correction.differenceTco2e) }} t CO₂e</td>
             </tr>
           </tbody>
         </table>
         <p class="aside">
-          Both figures are stored on every reading, which is why this page can serve either basis
-          rather than asking you to trust the corrected one.
+          We keep both values on every reading, so the difference stays visible.
         </p>
       </div>
     </Panel>
@@ -135,7 +134,6 @@ h1 { margin: 0 0 8px; font-size: 33px; font-weight: 800; }
 
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 24px; }
 
-.tabs { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; }
 .axis-note { margin: 10px 0 0; font-size: 11.5px; color: var(--ink-faint); }
 
 .correction { display: flex; flex-direction: column; gap: 14px; }
@@ -144,7 +142,7 @@ h1 { margin: 0 0 8px; font-size: 33px; font-weight: 800; }
 
 table { border-collapse: collapse; font-size: 14px; }
 td { padding: 6px 24px 6px 0; border-bottom: 1px solid var(--rule); }
-td:last-child { text-align: right; padding-right: 0; min-width: 110px; }
+td:last-child { text-align: right; padding-right: 0; min-width: 130px; }
 .delta td { font-weight: 700; color: var(--oxide); border-bottom: none; }
 
 .aside { font-size: 13.5px; color: var(--ink-faint); }

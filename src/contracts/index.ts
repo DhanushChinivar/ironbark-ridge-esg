@@ -34,6 +34,48 @@ export const monthlyEmissionsSchema = z.object({
   monthsWithoutFuelData: z.array(z.string()),
 });
 
+// The arithmetic behind one month, line by line. Every field a reader needs to
+// redo the sum by hand is here, including the ones that were excluded and why.
+const calculationLineSchema = z.object({
+  sourceFile: z.string(),
+  sourceRowNumber: z.number().int(),
+  reference: z.string(),
+  asRecorded: z.string(),
+  quantity: z.number(),
+  quantityUnit: z.string(),
+  factorActivity: z.string(),
+  factorPerUnit: z.number(),
+  kgCo2e: z.number(),
+  /** True where cleaning changed the quantity: a unit conversion or a rescale. */
+  changed: z.boolean(),
+  /** Present when the line is shown but deliberately left out of the sum. */
+  excludedBecause: z.string().nullable(),
+});
+
+export const emissionsCalculationSchema = z.object({
+  month: z.string(),
+  basis: basisSchema,
+  scopes: z.array(
+    z.object({
+      scope: z.number().int(),
+      label: z.string(),
+      lines: z.array(calculationLineSchema),
+      countedLines: z.number().int(),
+      subtotalKgCo2e: z.number(),
+      subtotalTco2e: z.number(),
+    }),
+  ),
+  totalTco2e: z.number(),
+  // The same month as the dashboard reports it. If these disagree, one of the
+  // two queries is wrong and the page says so rather than hiding it.
+  reported: z.object({
+    scope1Tco2e: z.number(),
+    scope2Tco2e: z.number(),
+    totalTco2e: z.number(),
+  }),
+  availableMonths: z.array(z.string()),
+});
+
 export const incidentSummarySchema = z.object({
   total: z.number().int(),
   bySeverity: z.array(
@@ -143,6 +185,8 @@ export const evidenceSchema = z.object({
 });
 
 export type MonthlyEmissions = z.infer<typeof monthlyEmissionsSchema>;
+export type EmissionsCalculation = z.infer<typeof emissionsCalculationSchema>;
+export type CalculationLine = z.infer<typeof calculationLineSchema>;
 export type IncidentSummary = z.infer<typeof incidentSummarySchema>;
 export type IncidentTrend = z.infer<typeof incidentTrendSchema>;
 export type DataQualityReport = z.infer<typeof dataQualityReportSchema>;
